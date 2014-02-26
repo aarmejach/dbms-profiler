@@ -222,14 +222,21 @@ sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "analyze"
 echo "Checkpointing..."
 sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "checkpoint"
 
-cd "$BASEDIR/dbgen"
-for i in $(seq 1 22);
-do
-  ii=$(printf "%02d" $i)
-  mkdir -p "../queries"
-  DSS_QUERY=queries ./qgen -s $SCALE $i >../queries/q$ii.sql
-  sed 's/^select/explain select/' ../queries/q$ii.sql > ../queries/q$ii.explain.sql
-  sed 's/^select/explain analyze select/' ../queries/q$ii.sql > ../queries/q$ii.analyze.sql
-done
+if [ -d "$BASEDIR/queries" ]; then
+    echo "Queries folder exists, skip query creation."
+else
+    echo "Queries folder does not exists, query creation."
+    cd "$BASEDIR/dbgen"
+    for i in $(seq 1 22);
+    do
+        ii=$(printf "%02d" $i)
+        mkdir "../queries"
+        DSS_QUERY=queries ./qgen -d -s $SCALE $i >../queries/q$ii.sql
+        cat ../queries/q$ii.sql >> ../queries/qall.sql
+        sed 's/^select/explain select/' ../queries/q$ii.sql > ../queries/q$ii.explain.sql
+        sed 's/^select/explain analyze select/' ../queries/q$ii.sql > ../queries/q$ii.analyze.sql
+    done
+fi
 
+cd $BASEDIR
 printf 'Elapsed time: %s\n' $(timer $t)
