@@ -1,60 +1,8 @@
 #!/bin/bash -e
 
 # Install teardown() function to kill any lingering jobs
-teardown() {
-  echo "Cleaning up before exiting"
-  sudo -u $PGUSER $PGBINDIR/pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 1
-  JOBS=$(jobs -p)
-  test -z "$JOBS" || { kill $JOBS && sleep 2; }
-  JOBS=$(jobs -p)
-  test -z "$JOBS" || kill -9 $JOBS
-}
-test -z "${DEBUG-}" && trap "teardown" EXIT
-
-# Calculates elapsed time
-timer() {
-    if [[ $# -eq 0 ]]; then
-        echo $(date '+%s')
-    else
-        local  stime=$1
-        etime=$(date '+%s')
-
-        if [[ -z "$stime" ]]; then stime=$etime; fi
-
-        dt=$((etime - stime))
-        ds=$((dt % 60))
-        dm=$(((dt / 60) % 60))
-        dh=$((dt / 3600))
-        printf '%d:%02d:%02d' $dh $dm $ds
-    fi
-}
-
-# To perform checks
-die() {
-  echo "$@"
-  exit -1;
-}
-
-# Check for the running Postgres; exit if there is any on the given port
-PORT_PROCLIST="$(lsof -i tcp:$PORT | tail -n +2 | awk '{print $2}')"
-if [[ $(echo "$PORT_PROCLIST" | wc -w) -gt 0 ]];
-then
-  echo "The following processes have taken port $PORT"
-  echo "Please terminate them before running this script"
-  echo
-  for p in $PORT_PROCLIST;
-  do
-    ps -o pid,cmd $p
-  done
-  exit -1
-fi
-
-# Check if a Postgres server is running in the same directory
-if sudo -u $PGUSER $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; then
-  echo "A Postgres server is already running in the selected directory. Exiting."
-  sudo -u $PGUSER $PGBINDIR/pg_ctl status -D $DATADIR
-  exit -2
-fi
+# Check if postgres is running
+source "$BASEDIR/$DATABASE/common.sh"
 
 # Current time
 t=$(timer)
@@ -222,19 +170,19 @@ sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "analyze"
 echo "Checkpointing..."
 sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "checkpoint"
 
-if [ -d "$BASEDIR/queries" ]; then
+if [ -d "$QUERIESDIR" ]; then
     echo "Queries folder exists, skip query creation."
 else
     echo "Queries folder does not exists, query creation."
+    mkdir $QUERIESDIR
     cd "$BASEDIR/dbgen"
     for i in $(seq 1 22);
     do
         ii=$(printf "%02d" $i)
-        mkdir "../queries"
-        DSS_QUERY=queries ./qgen -d -s $SCALE $i >../queries/q$ii.sql
-        cat ../queries/q$ii.sql >> ../queries/qall.sql
-        sed 's/^select/explain select/' ../queries/q$ii.sql > ../queries/q$ii.explain.sql
-        sed 's/^select/explain analyze select/' ../queries/q$ii.sql > ../queries/q$ii.analyze.sql
+        DSS_QUERY=queries ./qgen -d -s $SCALE $i > $QUERIESDIR/q$ii.sql
+        cat $QUERIESDIR/q$ii.sql >> $QUERIESDIR/qall.sql
+        sed 's/^select/explain select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.explain.sql
+        sed 's/^select/explain analyze select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.analyze.sql
     done
 fi
 

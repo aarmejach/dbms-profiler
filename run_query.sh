@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
 DBMS="pgsql monetdb"
