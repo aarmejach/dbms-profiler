@@ -41,6 +41,9 @@ else
     echo "done creating data dir in $DATADIR"
 fi
 
+echo "drop caches."
+sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
+
 echo "Running queries for $DATABASE"
 source "$BASEDIR/$DATABASE/run_queries.sh"
 echo "done."
