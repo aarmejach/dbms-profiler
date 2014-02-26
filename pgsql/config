@@ -1,8 +1,8 @@
-SCALE=100
+SCALE=1
 TPCHTMP=/AXLE/$USER/tpch_tmp
 DATADIR=/AXLE/$USER/pgdata${SCALE}GB
-PGPORT=5442
+PORT=5442
 DB_NAME="tpch"
 CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
-PGBINDIR=$HOME/bin/postgres-bs128/bin
+PGBINDIR=$HOME/bin/postgres-bs8/bin

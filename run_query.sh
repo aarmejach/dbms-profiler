@@ -28,7 +28,7 @@ if [ -d "$DATABASE" ]; then
     echo "Load configuration for $DATABASE"
     source "$BASEDIR/$DATABASE/config"
 else
-    echo "Invalid DBMS, options are: $DBMS"
+    show_help
     exit 0
 fi
 
