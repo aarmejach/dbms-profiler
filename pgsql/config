@@ -1,4 +1,4 @@
-SCALE=1
+SCALE=10
 TPCHTMP=/AXLE/$USER/tpch_tmp
 DATADIR=/AXLE/$USER/pgdata${SCALE}GB
 PORT=5442
@@ -7,5 +7,5 @@ CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
 PGBINDIR=$HOME/bin/postgres-bs8/bin
 RESULTS=$BASEDIR/results/$DATABASE
-QUERIESDIR=$BASEDIR/queries
+QUERIESDIR=$BASEDIR/queries/$SCALE
 QUERIES=$(seq 1 22)

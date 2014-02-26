@@ -170,6 +170,9 @@ sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "analyze"
 echo "Checkpointing..."
 sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "checkpoint"
 
+echo "Stop the postgres server"
+sudo -u $PGUSER $PGBINDIR/pg_ctl stop -D $DATADIR
+
 if [ -d "$QUERIESDIR" ]; then
     echo "Queries folder exists, skip query creation."
 else
