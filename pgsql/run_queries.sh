@@ -17,8 +17,11 @@ sudo -u $PGUSER taskset -c 2 $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
 PGPID=$!
 while ! sudo -u $PGUSER $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
   echo "Waiting for the Postgres server to start"
-  sleep 1
+  sleep 2
 done
+
+# Additional sleep time seems necessary
+sleep 3
 
 # Warmup: run all queries in succession
 echo "Warmup: run all queries in succession"

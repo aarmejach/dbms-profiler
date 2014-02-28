@@ -177,12 +177,12 @@ if [ -d "$QUERIESDIR" ]; then
     echo "Queries folder exists, skip query creation."
 else
     echo "Queries folder does not exists, query creation."
-    mkdir $QUERIESDIR
+    mkdir -p $QUERIESDIR
     cd "$BASEDIR/dbgen"
     for i in $(seq 1 22);
     do
         ii=$(printf "%02d" $i)
-        DSS_QUERY=queries ./qgen -d -s $SCALE $i > $QUERIESDIR/q$ii.sql
+        DSS_QUERY=queries/$DATABASE ./qgen -d -s $SCALE $i > $QUERIESDIR/q$ii.sql
         cat $QUERIESDIR/q$ii.sql >> $QUERIESDIR/qall.sql
         sed 's/^select/explain select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.explain.sql
         sed 's/^select/explain analyze select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.analyze.sql
