@@ -8,14 +8,15 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d%H%M%S"`
+RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d-%H%M%S"`
 mkdir -p $RESULTS
 cd $RESULTS
 
 # Initialize monetdb daemon
-sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DATABASE --daemon=yes &
+sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --dbinit="clients.quit();" # allows us to read the wal log first
+sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
 MDBPID=$!
-sleep 15
+sleep 5
 
 # Warmup: run all queries in succession
 echo "Warmup: run all queries in succession"

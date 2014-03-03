@@ -13,7 +13,7 @@ sudo -u $MDBUSER mkdir -p "$DATADIR" || die "Failed to create directory $DATADIR
 sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
 MDBPID=$!
 echo "monetdb server runing on pid $MDBPID"
-sleep 15
+sleep 10
 
 # disable resolving of *.tbl to '*.tbl' in case there are no matching files
 shopt -s nullglob

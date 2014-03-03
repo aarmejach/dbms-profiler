@@ -8,7 +8,7 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d%H%M%S"`
+RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d-%H%M%S"`
 mkdir -p $RESULTS
 cd $RESULTS
 
