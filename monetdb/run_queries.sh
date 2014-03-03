@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Install teardown() function to kill any lingering jobs
 # Check if monetdb is running
@@ -13,7 +13,9 @@ mkdir -p $RESULTS
 cd $RESULTS
 
 # Initialize monetdb daemon
-sudo -u $MDBUSER $MDBBINDIR/monetdbd start $DATADIR
+sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DATABASE --daemon=yes &
+MDBPID=$!
+sleep 15
 
 # Warmup: run all queries in succession
 echo "Warmup: run all queries in succession"
@@ -38,6 +40,6 @@ do
 done
 
 echo "Stop the monetdb server"
-sudo -u $MDBUSER $MDBBINDIR/monetdbd stop $DATADIR
+kill $MDBPID
 
 exit 1

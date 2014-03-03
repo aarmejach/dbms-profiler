@@ -1,9 +1,9 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Install teardown() function to kill any lingering jobs
 teardown() {
   echo "Cleaning up before exiting"
-  sudo -u $MDBUSER $MDBBINDIR/monetdbd stop "$DATADIR" 2>/dev/null && sleep 3
+  #sudo -u $MDBUSER $MDBBINDIR/monetdbd stop "$DATADIR" 2>/dev/null && sleep 3
   JOBS=$(jobs -p)
   test -z "$JOBS" || { kill $JOBS && sleep 2; }
   JOBS=$(jobs -p)

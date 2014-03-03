@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Install teardown() function to kill any lingering jobs
 # Check if monetdb is running
@@ -10,12 +10,10 @@ t=$(timer)
 # Initialize monetdb daemon and create database
 # should I set up locales?
 sudo -u $MDBUSER mkdir -p "$DATADIR" || die "Failed to create directory $DATADIR"
-sudo -u $MDBUSER $MDBBINDIR/monetdbd create $DATADIR
-sudo -u $MDBUSER $MDBBINDIR/monetdbd start $DATADIR
-sudo -u $MDBUSER $MDBBINDIR/monetdb create $DB_NAME
-sudo -u $MDBUSER $MDBBINDIR/monetdb release $DB_NAME
-MDBPID=$(<"$PIDFILE")
-echo "monetdb daemon runing on pid $MDBPID"
+sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
+MDBPID=$!
+echo "monetdb server runing on pid $MDBPID"
+sleep 15
 
 # disable resolving of *.tbl to '*.tbl' in case there are no matching files
 shopt -s nullglob
@@ -116,7 +114,7 @@ done
 echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
 
 echo "Stop the monetdb server"
-sudo -u $MDBUSER $MDBBINDIR/monetdbd stop $DATADIR
+kill $MDBPID
 sleep 5
 
 if [ -d "$QUERIESDIR" ]; then
