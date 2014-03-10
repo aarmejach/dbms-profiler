@@ -43,9 +43,11 @@ do
     shift
 done
 
-for DATABASE in DATABASES; do
+echo "Profiler running benchmark/s: $BENCHMARKS, on $DATABASES."
 
-    for bench in BENCHMARKS; do
+for DATABASE in $DATABASES; do
+
+    for bench in $BENCHMARKS; do
 
         # The DB folder must exist
         if [ -d "$DATABASE" ]; then

@@ -51,5 +51,3 @@ sudo -u $PGUSER $PGBINDIR/pg_ctl stop -D $DATADIR
 
 # Generate callgraphs
 source "$BASEDIR/common/callgraph.sh"
-
-exit 0

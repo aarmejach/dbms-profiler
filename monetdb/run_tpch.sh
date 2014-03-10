@@ -52,5 +52,3 @@ kill $MDBPID
 
 # Generate callgraphs
 source "$BASEDIR/common/callgraph.sh"
-
-exit 0

@@ -183,5 +183,3 @@ fi
 
 cd $BASEDIR
 printf 'Elapsed time: %s\n' $(timer $t)
-
-exit 0

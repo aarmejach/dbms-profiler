@@ -12,5 +12,3 @@ do
 
     cd ..
 done
-
-exit 0
