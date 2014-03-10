@@ -1,0 +1,16 @@
+array=( \
+    "rC0,r3C:u,r3C:k" \             # Inst. retired, unhalted cycles
+    "r280,r108:u,r108:k" \          # icache misses, dtlb miss-pagewalk
+    "r208:u,r208:k" \               # dtlb misses with page walk completed
+    "r408:u,r408:k" \               # cycles PMH busy doing walk  
+    "r249:u,r249:k,r449:u,r449:k" \ #dtlb store misses walk completed, cycles
+    "r2D1,r20D1,r8D2,r4D2" \        # loads retired with L2 hit, loads with LLC miss, loads with LLC hit, loads with remote LLC hit same package
+    "r1D3,r4D3,r412E,r24E" \        # loads hit local DRAM, loads hit remote DRAM, misses for references to the LLC, hw prefetch requests that miss the L1D  
+    "r4024,r8024" \                 # req. from L2 hw prefetcher that hit L2, req. from L2 hw prefetcher that miss L2
+    "r285:u,r285:k" \               # misses in all itlb's that cause completed page walks 
+    "r485:u,r485:k,r1085:u,r1085:k" \ # cycles itlb misses busy with walk, number of cache load stlb hits
+    "r1008:u,r1008:k" \             # number of cache load stlb hits
+    "r1049:u,r1049:k" \             # stores that miss first tlb but hit second level, no page walk.
+    )
+
+
