@@ -9,8 +9,8 @@ t=$(timer)
 
 # Initialize monetdb daemon and create database
 # should I set up locales?
-sudo -u $MDBUSER mkdir -p "$DATADIR" || die "Failed to create directory $DATADIR"
-sudo -u $MDBUSER $MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
+mkdir -p "$DATADIR" || die "Failed to create directory $DATADIR"
+$MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
 MDBPID=$!
 echo "monetdb server runing on pid $MDBPID"
 sleep 10
@@ -26,19 +26,19 @@ then
 fi
 
 # generate tpc-h data
-sudo -u $MDBUSER mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
+mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
 cd "$TPCHTMP"
-sudo -u $MDBUSER cp "$BASEDIR/dbgen/dists.dss" .
+cp "$BASEDIR/dbgen/dists.dss" .
 # Run dbgen with "force", to overwrite existing files
 # Create table files separately to have better IO throughput
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T c &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T s &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T n &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T r &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T O &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T L &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T P &
-sudo -u $MDBUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T S &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T c &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T s &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T n &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T r &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T O &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T L &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T P &
+"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T S &
 
 # Wait for all pending jobs to finish.
 for p in $(jobs -p);
@@ -51,13 +51,13 @@ done
 
 # Take the time and create tables
 TIME=`date`
-sudo -u $MDBUSER $MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ddl"
+$MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ddl"
 
 cd "$TPCHTMP"
 for f in *.tbl; do
   bf="$(basename $f .tbl)"
   # http://www.pilhokim.com/index.php?title=Project/EFIM/TPC-H#Setup_MonetDB
-  echo "COPY INTO $bf FROM '$(pwd)/$f' USING DELIMITERS '|','\n';" | sudo -u $MDBUSER $MDBBINDIR/mclient -d $DB_NAME &
+  echo "COPY INTO $bf FROM '$(pwd)/$f' USING DELIMITERS '|','\n';" | $MDBBINDIR/mclient -d $DB_NAME &
 done
 
 # TODO: It would be nice if there was a way to limit the number of
@@ -69,41 +69,41 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-sudo -u $MDBUSER $MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ri"
+$MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ri"
 
 # Remove tmp folder
 cd "$BASEDIR"
-sudo -u $MDBUSER rm -rf "$TPCHTMP"
+rm -rf "$TPCHTMP"
 
 # Since wal_level is hopefully set to 'minimal', it ought to be possible to skip
 # WAL logging these create index operations, too.
 echo "Creating 'All' indexes..."
 # Primary key definitions already create indexes ????
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_r_regionkey ON region (r_regionkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_n_nationkey ON nation (n_nationkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_p_partkey ON part (p_partkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_custkey ON customer (c_custkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderkey ON orders (o_orderkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_r_regionkey ON region (r_regionkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_n_nationkey ON nation (n_nationkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_p_partkey ON part (p_partkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_custkey ON customer (c_custkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderkey ON orders (o_orderkey);" &
 
 # Pg does not create indexed on foreign keys, create them manually
-sudo -u $MDBUSER  $MDBBINDIR/mclient -h /tmp -p $PORT -d $DB_NAME -s "CREATE INDEX i_n_regionkey ON nation (n_regionkey);" & # not used
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_nationkey ON supplier (s_nationkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_nationkey ON customer (c_nationkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_suppkey ON partsupp (ps_suppkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_partkey ON partsupp (ps_partkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_custkey ON orders (o_custkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey ON lineitem (l_orderkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey_partkey ON lineitem (l_partkey, l_suppkey);" &
+$MDBBINDIR/mclient -h /tmp -p $PORT -d $DB_NAME -s "CREATE INDEX i_n_regionkey ON nation (n_regionkey);" & # not used
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_nationkey ON supplier (s_nationkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_nationkey ON customer (c_nationkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_suppkey ON partsupp (ps_suppkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_partkey ON partsupp (ps_partkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_custkey ON orders (o_custkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey ON lineitem (l_orderkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey_partkey ON lineitem (l_partkey, l_suppkey);" &
 
 # other indexes
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_shipdate ON lineitem (l_shipdate);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_partkey ON lineitem (l_partkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey ON lineitem (l_suppkey);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_receiptdate ON lineitem (l_receiptdate);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey_quantity ON lineitem (l_orderkey, l_quantity);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderdate ON orders (o_orderdate);" &
-sudo -u $MDBUSER  $MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);" & # not used
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_shipdate ON lineitem (l_shipdate);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_partkey ON lineitem (l_partkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey ON lineitem (l_suppkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_receiptdate ON lineitem (l_receiptdate);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey_quantity ON lineitem (l_orderkey, l_quantity);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderdate ON orders (o_orderdate);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);" & # not used
 
 for p in $(jobs -p); do
     if [ $p == $MDBPID ]; then continue; fi
