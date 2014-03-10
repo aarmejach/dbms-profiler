@@ -46,8 +46,11 @@ done
 echo "Profiler running benchmark/s: $BENCHMARKS, on $DATABASES."
 
 for DATABASE in $DATABASES; do
+    echo "Running on $DATABASE"
+    cd $BASEDIR
 
     for bench in $BENCHMARKS; do
+        echo "Running benchmark: $bench"
 
         # The DB folder must exist
         if [ -d "$DATABASE" ]; then
