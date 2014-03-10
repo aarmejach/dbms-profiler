@@ -1,13 +1,14 @@
+# Configuration file for the TPC-H benchmark on monetdb
 SCALE=1
 TPCHTMP=/AXLE/$USER/tpch_tmp
-DATADIR=/AXLE/$USER/mdbdata${SCALE}GB
+DATADIR=/AXLE/$USER/mdbdata${SCALE}GB-tpch
 PORT=50000
 DB_NAME="tpch"
 CORES=`grep -c ^processor /proc/cpuinfo`
 MDBUSER="nobody"
 MDBBINDIR=$HOME/bin/monetdb/bin
-RESULTS=$BASEDIR/results/$DATABASE
-QUERIESDIR=$BASEDIR/queries/$DATABASE/$SCALE
+RESULTS=$BASEDIR/results/$DATABASE/$bench
+QUERIESDIR=$BASEDIR/queries/$DATABASE/$bench/$SCALE
 QUERIES=$(seq 1 22)
 PIDFILE=$DATADIR/merovingian.pid
 CREDENTIALSFILE=$BASEDIR/$DATABASE/mdbcredentials.txt

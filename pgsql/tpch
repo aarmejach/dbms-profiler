@@ -1,0 +1,12 @@
+# Configuration file for the TPC-H benchmark on pgswl
+SCALE=1
+TPCHTMP=/AXLE/$USER/tpch_tmp
+DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
+PORT=5442
+DB_NAME="tpch"
+CORES=`grep -c ^processor /proc/cpuinfo`
+PGUSER="nobody"
+PGBINDIR=$HOME/bin/postgres-bs8/bin
+RESULTS=$BASEDIR/results/$DATABASE/$bench
+QUERIESDIR=$BASEDIR/queries/$DATABASE/$bench/$SCALE
+QUERIES=$(seq 1 22)
