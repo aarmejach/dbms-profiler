@@ -8,7 +8,7 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d-%H%M%S"`
+RESULTS=$RESULTS/`date +"%Y%m%d-%H%M%S"`
 mkdir -p $RESULTS
 cd $RESULTS
 
@@ -39,8 +39,9 @@ do
 
     # Execute each query once
     /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        --output=exectime.txt sudo -u $PGUSER $PGBINDIR/psql -h /tmp\
-        -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql  2> stderr.txt > stdout.txt
+        --output=exectime.txt sudo -u $PGUSER perf record -a -C 2 -s -g -m 512 --\
+        $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql\
+        2> stderr.txt > stdout.txt
 
     cd ..
 done
@@ -48,4 +49,7 @@ done
 echo "Stop the postgres server"
 sudo -u $PGUSER $PGBINDIR/pg_ctl stop -D $DATADIR
 
-exit 1
+# Generate callgraphs
+source "$BASEDIR/common/callgraph.sh"
+
+exit 0

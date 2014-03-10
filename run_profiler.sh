@@ -1,8 +1,9 @@
 #!/bin/bash
+
 BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
 
-source $BASEDIR/common/config
+source "$BASEDIR/common/config"
 
 show_help() {
     echo "Execute benchmarks for certain databases."
@@ -15,20 +16,29 @@ do
     case $1 in
         -h|--help) # print help
             show_help
-            exit 1
+            exit 0
             ;;
         -db|--database) # DBMS to be used
-            DATABASES=$2
+            shift
+            DATABASES=$1
             shift
             ;;
         -b|--benchmark) # bench to be used, if not specified all will be executed
-            BENCHMARKS=$2
+            shift
+            BENCHMARKS=$1
             shift
             ;;
         -p|--prepare) # just create the DB, don't run the benchmark
             PREPARE=true
             shift
             ;;
+        -t|--tomograph) # this just works with monetdb
+            TOMOGRAPH=true
+            shift
+            ;;
+        *)
+            echo "Unrecognized option: $1"
+            exit 1
     esac
     shift
 done
@@ -60,7 +70,7 @@ for DATABASE in DATABASES; do
         fi
 
         # Will run the benchmark
-        echo "Get ready to run benchmarks: drop caches."
+        echo "Get ready to run benchmark $bench: drop caches."
         sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
         sleep 5
 
@@ -70,6 +80,5 @@ for DATABASE in DATABASES; do
 
 done
 
-
-echo "done."
-exit 1
+echo "profiler done."
+exit 0

@@ -19,7 +19,7 @@ sleep 10
 shopt -s nullglob
 
 # compile dbgen
-cd "$BASEDIR/dbgen"
+cd "$BENCHDIR"
 if ! [ -x dbgen ] || ! [ -x qgen ];
 then
   make -j $CORES
@@ -28,17 +28,17 @@ fi
 # generate tpc-h data
 mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
 cd "$TPCHTMP"
-cp "$BASEDIR/dbgen/dists.dss" .
+cp "$BENCHDIR/dists.dss" .
 # Run dbgen with "force", to overwrite existing files
 # Create table files separately to have better IO throughput
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T c &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T s &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T n &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T r &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T O &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T L &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T P &
-"$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T S &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T c &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T s &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T n &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T r &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T O &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T L &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T P &
+"$BENCHDIR/dbgen" -s $SCALE -f -v -T S &
 
 # Wait for all pending jobs to finish.
 for p in $(jobs -p);
@@ -51,7 +51,7 @@ done
 
 # Take the time and create tables
 TIME=`date`
-$MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ddl"
+$MDBBINDIR/mclient -d $DB_NAME < "$BENCHDIR/dss.ddl"
 
 cd "$TPCHTMP"
 for f in *.tbl; do
@@ -69,7 +69,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-$MDBBINDIR/mclient -d $DB_NAME < "$BASEDIR/dbgen/dss.ri"
+$MDBBINDIR/mclient -d $DB_NAME < "$BENCHDIR/dss.ri"
 
 # Remove tmp folder
 cd "$BASEDIR"
@@ -122,7 +122,7 @@ if [ -d "$QUERIESDIR" ]; then
 else
     echo "Queries folder does not exists, query creation."
     mkdir -p $QUERIESDIR
-    cd "$BASEDIR/dbgen"
+    cd "$BENCHDIR"
     for i in $(seq 1 22);
     do
         ii=$(printf "%02d" $i)
@@ -135,3 +135,5 @@ fi
 
 cd $BASEDIR
 printf 'Elapsed time: %s\n' $(timer $t)
+
+exit 0

@@ -8,7 +8,7 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/${SCALE}GB-`date +"%Y%m%d-%H%M%S"`
+RESULTS=$RESULTS/`date +"%Y%m%d-%H%M%S"`
 mkdir -p $RESULTS
 cd $RESULTS
 
@@ -42,40 +42,15 @@ do
     cd ..
 done
 
-for i in $QUERIES;
-do
-    echo "Running tomograph on query: $i"
-    ii=$(printf "%02d" $i)
-    dir="q${ii}"
-    cd "$dir"
-
-    python $BASEDIR/$DATABASE/run_tomo.py $QUERIESDIR/q$ii.sql
-
-    cd ..
-done
+# Run monetdb tomograph, need to be enabled at command line
+if [ "$TOMOGRAPH" = true ]; then
+    source "$BASEDIR/monetdb/run_tomo.sh"
+fi
 
 echo "Stop the monetdb server"
 kill $MDBPID
 
-# Generate callgraph
-for i in $QUERIES;
-do
-  ii=$(printf "%02d" $i)
-  dir="q${ii}"
-  mkdir -p $dir
-  cd "$dir"
+# Generate callgraphs
+source "$BASEDIR/common/callgraph.sh"
 
-  cgf="q${ii}-callgraph.pdf"
-  echo "Creating the call graph: $cgf"
-  perf script | python "$BASEDIR/gprof2dot.py" -f perf | dot -Tpdf -o $cgf &
-
-  cd - >/dev/null
-done
-
-# Wait for all pending jobs to finish.
-for p in $(jobs -p);
-do
-  wait $p
-done
-
-exit 1
+exit 0

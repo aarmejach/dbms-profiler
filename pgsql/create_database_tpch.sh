@@ -22,18 +22,10 @@ done
 # Create database
 sudo -u $PGUSER $PGBINDIR/createdb -h /tmp -p $PORT $PGUSER --encoding=UTF-8 --locale=C
 
-DEBUG_ASSERTIONS=`sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -c 'show debug_assertions' -t | grep on | wc -l`
-
 # disable resolving of *.tbl to '*.tbl' in case there are no matching files
 shopt -s nullglob
 
-if [ $DEBUG_ASSERTIONS = 1 ] ;
-then
-    echo "Error: debug_assertions are enabled">&2
-    exit -1
-fi
-
-cd "$BASEDIR/dbgen"
+cd "$BENCHDIR"
 if ! [ -x dbgen ] || ! [ -x qgen ];
 then
   make -j $CORES
@@ -41,17 +33,17 @@ fi
 
 sudo -u $PGUSER mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
 cd "$TPCHTMP"
-sudo -u $PGUSER cp "$BASEDIR/dbgen/dists.dss" .
+sudo -u $PGUSER cp "$BENCHDIR/dists.dss" .
 # Run dbgen with "force", to overwrite existing files
 # Create table files separately to have better IO throughput
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T c &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T s &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T n &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T r &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T O &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T L &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T P &
-sudo -u $PGUSER "$BASEDIR/dbgen/dbgen" -s $SCALE -f -v -T S &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T c &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T s &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T n &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T r &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T O &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T L &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T P &
+sudo -u $PGUSER "$BENCHDIR/dbgen" -s $SCALE -f -v -T S &
 
 # Wait for all pending jobs to finish.
 for p in $(jobs -p);
@@ -81,7 +73,7 @@ fi
 
 TIME=`date`
 sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "comment on database $DB_NAME is 'TPC-H data, created at $TIME'"
-sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BASEDIR/dbgen/dss.ddl"
+sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BENCHDIR/dss.ddl"
 
 # Configuration parameters for efficient data loading
 echo "$data_loading_configuration" | sudo -u $PGUSER tee -a $DATADIR/postgresql.conf
@@ -106,7 +98,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BASEDIR/dbgen/dss.ri"
+sudo -u $PGUSER $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BENCHDIR/dss.ri"
 
 # Remove tmp folder
 cd "$BASEDIR"
@@ -178,7 +170,7 @@ if [ -d "$QUERIESDIR" ]; then
 else
     echo "Queries folder does not exists, query creation."
     mkdir -p $QUERIESDIR
-    cd "$BASEDIR/dbgen"
+    cd "$BENCHDIR"
     for i in $(seq 1 22);
     do
         ii=$(printf "%02d" $i)
@@ -191,3 +183,5 @@ fi
 
 cd $BASEDIR
 printf 'Elapsed time: %s\n' $(timer $t)
+
+exit 0

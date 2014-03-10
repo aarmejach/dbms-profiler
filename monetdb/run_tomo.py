@@ -8,4 +8,4 @@ os.system("/home/adria/bin/monetdb/bin/tomograph --dbname=tpch &")
 
 mcl.sendline(open(sys.argv[1]).read()+"\q")
 
-mcl.expect(pexpect.EOF, timeout=3600*24)
+mcl.expect(pexpect.EOF, timeout=3600*2)

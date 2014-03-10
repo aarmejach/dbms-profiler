@@ -1,2 +1,4 @@
 DATABASES="pgsql monetdb"
 BENCHMARKS="tpch tpcc"
+PREPARE=false
+TOMOGRAPH=false
