@@ -36,6 +36,7 @@ do
     dir="q${ii}"
     mkdir -p $dir
     cd "$dir"
+    chmod 777 .
 
     # Execute each query once
     /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
@@ -43,6 +44,8 @@ do
         $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql\
         2> stderr.txt > stdout.txt
 
+    sudo chown $USER:$USER *
+    chmod 775 .
     cd ..
 done
 
