@@ -36,6 +36,15 @@ do
             TOMOGRAPH=true
             shift
             ;;
+        -r|--results) # append a "name" to results dir
+            shift
+            RESULTSDIR_APPEND="-${1}"
+            shift
+            ;;
+        -s|--stat) # use perf stat instead of record
+            STAT=1
+            shift
+            ;;
         *)
             echo "Unrecognized option: $1"
             exit 1

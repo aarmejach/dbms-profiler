@@ -8,7 +8,7 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/`date +"%Y%m%d-%H%M%S"`
+RESULTS=$RESULTS/`date +"%Y%m%d-%H%M%S"`$RESULTSDIR_APPEND
 mkdir -p $RESULTS
 cd $RESULTS
 
@@ -34,10 +34,21 @@ do
     mkdir -p $dir
     cd "$dir"
 
-    # Execute each query once
-    /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        --output=exectime.txt perf record --pid=$MDBPID -s -g -m 512 -- $MDBBINDIR/mclient\
-        -d $DB_NAME < $QUERIESDIR/q$ii.sql  2> stderr.txt > stdout.txt
+    if [ $STAT -eq 0 ]; then
+        # Execute each query once
+        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k' \
+            --output=exectime.txt perf record --pid=$MDBPID -s -g -m 512 -- \
+            $MDBBINDIR/mclient -d $DB_NAME < $QUERIESDIR/q$ii.sql \
+            2> stderr.txt > stdout.txt
+    else
+        for counter in "${array[@]}"; do
+            # Execute queries using perf stat, repeat 3
+            LC_NUMERIC=C perf stat --append -o perf-stats.csv \
+                -r 3 -e $counter --pid=$MDBPID -x "," -- \
+                $MDBBINDIR/mclient -d $DB_NAME < $QUERIESDIR/q$ii.sql \
+                2> stderr.txt > stdout.txt
+        done
+    fi
 
     cd ..
 done
