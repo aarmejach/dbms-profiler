@@ -3,4 +3,4 @@ BENCHMARKS="tpch tpcc"
 PREPARE=false
 TOMOGRAPH=false
 RESULTSDIR_APPEND=
-STAT=0
+STAT=false

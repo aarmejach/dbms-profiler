@@ -21,29 +21,23 @@ do
         -db|--database) # DBMS to be used
             shift
             DATABASES=$1
-            shift
             ;;
         -b|--benchmark) # bench to be used, if not specified all will be executed
             shift
             BENCHMARKS=$1
-            shift
             ;;
         -p|--prepare) # just create the DB, don't run the benchmark
             PREPARE=true
-            shift
             ;;
         -t|--tomograph) # this just works with monetdb
             TOMOGRAPH=true
-            shift
             ;;
         -r|--results) # append a "name" to results dir
             shift
-            RESULTSDIR_APPEND="-${1}"
-            shift
+            RESULTSDIR_APPEND="-$1"
             ;;
         -s|--stat) # use perf stat instead of record
-            STAT=1
-            shift
+            STAT=true
             ;;
         *)
             echo "Unrecognized option: $1"

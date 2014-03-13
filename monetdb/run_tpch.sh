@@ -34,14 +34,16 @@ do
     mkdir -p $dir
     cd "$dir"
 
-    if [ $STAT -eq 0 ]; then
+    if [ "$STAT" = false ]; then
         # Execute each query once
         /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k' \
             --output=exectime.txt perf record --pid=$MDBPID -s -g -m 512 -- \
             $MDBBINDIR/mclient -d $DB_NAME < $QUERIESDIR/q$ii.sql \
             2> stderr.txt > stdout.txt
     else
+        source "$BASEDIR/common/perf-counters-axle.sh"
         for counter in "${array[@]}"; do
+            echo "Running query $i for counters $counter."
             # Execute queries using perf stat, repeat 3
             LC_NUMERIC=C perf stat --append -o perf-stats.csv \
                 -r 3 -e $counter --pid=$MDBPID -x "," -- \
@@ -62,4 +64,6 @@ echo "Stop the monetdb server"
 kill $MDBPID
 
 # Generate callgraphs
-source "$BASEDIR/common/callgraph.sh"
+if [ "$STAT" = false ]; then
+    source "$BASEDIR/common/callgraph.sh"
+fi

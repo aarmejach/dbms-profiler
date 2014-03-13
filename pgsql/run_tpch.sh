@@ -38,14 +38,16 @@ do
     cd "$dir"
     chmod 777 .
 
-    if [ $STAT -eq 0 ]; then
+    if [ "$STAT" = false ]; then
         # Execute each query once
         /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
             --output=exectime.txt sudo -u $PGUSER perf record -a -C 2 -s -g -m 512 --\
             $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql\
             2> stderr.txt > stdout.txt
     else
+        source "$BASEDIR/common/perf-counters-axle.sh"
         for counter in "${array[@]}"; do
+            echo "Running query $i for counters $counter."
             # Execute queries using perf stat, repeat 3
             LC_NUMERIC=C sudo -u $PGUSER perf stat --append -o perf-stats.csv \
                 -r 3 -e $counter -a -C 2 -x "," -- \
@@ -63,4 +65,6 @@ echo "Stop the postgres server"
 sudo -u $PGUSER $PGBINDIR/pg_ctl stop -D $DATADIR
 
 # Generate callgraphs
-source "$BASEDIR/common/callgraph.sh"
+if [ "$STAT" = false ]; then
+    source "$BASEDIR/common/callgraph.sh"
+fi
