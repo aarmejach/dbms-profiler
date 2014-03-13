@@ -8,8 +8,6 @@ source "$BASEDIR/$DATABASE/common.sh"
 t=$(timer)
 
 mkdir -p $RESULTS
-RESULTS=$RESULTS/`date +"%Y%m%d-%H%M%S"`$RESULTSDIR_APPEND
-mkdir -p $RESULTS
 cd $RESULTS
 
 # Start a new instance of Postgres

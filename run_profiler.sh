@@ -10,7 +10,6 @@ show_help() {
     echo "You can specify DBMS to be used with -db. Possible options are $DATABASES."
 }
 
-
 while test $# -gt 0
 do
     case $1 in
@@ -36,8 +35,8 @@ do
             shift
             RESULTSDIR_APPEND="-$1"
             ;;
-        -s|--stat) # use perf stat instead of record
-            STAT=true
+        -s|--stat) # use perf stat instead or record
+            STAT=false
             ;;
         *)
             echo "Unrecognized option: $1"
@@ -45,6 +44,15 @@ do
     esac
     shift
 done
+
+# Argument testing
+if [ "$RESULTSDIR_APPEND" -eq "" ]; then
+    if [ "$STAT" -eq "true" ]; then
+        RESULTSDIR_APPEND="-perf"
+    else
+        RESULTSDIR_APPEND="-time"
+    fi
+fi
 
 echo "Profiler running benchmark/s: $BENCHMARKS, on $DATABASES."
 
