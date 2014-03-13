@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # read file with perf counters list
-file=perf-counters-axle-list
+file=$BASEDIR/common/perf-counters-axle-list
 list=`cat $file | grep -o 'r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]:[a-z]\|r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]'`
 
 merge_level=4
@@ -27,6 +27,11 @@ for elem in $list; do
     array_item=${array_item}${elem},
     ((it++))
 done
+# don't forget counters if not divisible by merge_level!
+if [ $array_item != "" ]; then
+    array_item=${array_item}\"
+    array[$array_index]=$array_item
+fi
 
 #for counter in "${array[@]}"; do
     #echo $counter

@@ -46,8 +46,8 @@ do
 done
 
 # Argument testing
-if [ "$RESULTSDIR_APPEND" -eq "" ]; then
-    if [ "$STAT" -eq "true" ]; then
+if [ "$RESULTSDIR_APPEND" = "" ]; then
+    if [ "$STAT" = "true" ]; then
         RESULTSDIR_APPEND="-perf"
     else
         RESULTSDIR_APPEND="-time"
