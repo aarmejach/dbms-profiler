@@ -1,19 +1,43 @@
 #!/bin/bash
 
-array=( \
-    "r00C0:u,r00C0:k,r003C:u,r003C:k" \
-    "r81D0,r82D0,rC188,r00C4" \
-    "r01C4,rFF88,rFF89,r00C5" \
-    "r01C5,r01D1,r04D1,r20D1" \
-    "r02D1,r40D1,r01D2,r02D2" \
-    "r04D2,r08D2" \
-    )
+# read file with perf counters list
+file=perf-counters-axle-list
+list=`cat $file | grep -o 'r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]:[a-z]\|r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]'`
+
+merge_level=4
+it=1
+array_item=
+array_index=0
+
+# create the array dynamically using the list
+for elem in $list; do
+    if [ $it -eq 1 ]; then
+        array_item=${array_item}\"
+    fi
+
+    if [ $it -eq $merge_level ]; then
+        array_item=${array_item}${elem}\"
+        array[$array_index]=$array_item
+        ((array_index++))
+        it=1
+        array_item=
+        continue
+    fi
+
+    array_item=${array_item}${elem},
+    ((it++))
+done
+
+#for counter in "${array[@]}"; do
+    #echo $counter
+#done
+
 
 ##### General
-#--C0H 00H Number of instructions at retirement.
-#--3CH 00H Number of thread cycles while the thread is not in a halt state.
-#--D0H 81H ALL Load uops retired to architectural path.
-#--D0H 82H ALL Store uops retired to architectural path.
+#C0H 00H Number of instructions at retirement.
+#3CH 00H Number of thread cycles while the thread is not in a halt state.
+#D0H 81H ALL Load uops retired to architectural path.
+#D0H 82H ALL Store uops retired to architectural path.
 #03H 10H Number of cases where any load is blocked but has no DCU miss
 #5BH 0CH Cycles stalled due to free list empty.
 #5BH 0FH Cycles stalled due to control structures full for physical registers.
@@ -49,13 +73,13 @@ array=( \
 #49H 10H Stores that miss first TLB but hit the second. No page walks.
 
 ##### Branch Predictor
-#--88H C1H Speculative and retired conditional branches.
-#--88H FFH Speculative and retired branches.
-#--89H FFH Speculative and retired mispredicted branches.
-#--C4H 00H Branch instructions at retirement.
-#--C4H 01H Counts the number of conditional branch instructions retired.
-#--C5H 00H Mispredicted branch instructions at retirement.
-#--C5H 01H Mispredicted conditional branch instructions retired.
+#88H C1H Speculative and retired conditional branches.
+#88H FFH Speculative and retired branches.
+#89H FFH Speculative and retired mispredicted branches.
+#C4H 00H Branch instructions at retirement.
+#C4H 01H Counts the number of conditional branch instructions retired.
+#C5H 00H Mispredicted branch instructions at retirement.
+#C5H 01H Mispredicted conditional branch instructions retired.
 
 ##### L1I
 #80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses.
@@ -99,12 +123,12 @@ array=( \
 #B0H 08H Data read requests sent to uncore (demand and prefetch).
 
 ##### Retired UOP loads
-#--D1H 01H Retired load uops with L1 cache hits as data sources.
-#--D1H 02H Retired load uops with L2 cache hits as data sources.
-#--D1H 04H Retired load uops which data sources were data hits in LLC without snoops required.
-#--D1H 20H Retired load uops which data sources were data missed LLC.
-#--D1H 40H Retired load uops which data sources missed L1 but hit Fill Buffer. 
-#--D2H 01H Retired load uops whose data source was an on-package core cache LLC hit and cross-core snoop missed.
-#--D2H 02H Retired load uops whose data source was an on-package LLC hit and cross-core snoop hits. 
-#--D2H 04H Retired load uops whose data source was an on-package core cache with HitM responses. 
-#--D2H 08H Retired load uops whose data source was LLC hit with no snoop required.
+#D1H 01H Retired load uops with L1 cache hits as data sources.
+#D1H 02H Retired load uops with L2 cache hits as data sources.
+#D1H 04H Retired load uops which data sources were data hits in LLC without snoops required.
+#D1H 20H Retired load uops which data sources were data missed LLC.
+#D1H 40H Retired load uops which data sources missed L1 but hit Fill Buffer. 
+#D2H 01H Retired load uops whose data source was an on-package core cache LLC hit and cross-core snoop missed.
+#D2H 02H Retired load uops whose data source was an on-package LLC hit and cross-core snoop hits. 
+#D2H 04H Retired load uops whose data source was an on-package core cache with HitM responses. 
+#D2H 08H Retired load uops whose data source was LLC hit with no snoop required.
