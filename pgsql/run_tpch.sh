@@ -48,9 +48,9 @@ do
             echo "Running query $i for counters $counter."
             # Execute queries using perf stat, repeat 3
             LC_NUMERIC=C sudo -u $PGUSER perf stat --append -o perf-stats.csv \
-                -r 3 -e $counter -a -C 2 -x "," -- \
+                -r 1 -e $counter -a -C 2 -x "," -- \
                 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql\
-                2> stderr.txt > stdout.txt
+                2> stderr_$counter.txt > stdout_$counter.txt
         done
     fi
 

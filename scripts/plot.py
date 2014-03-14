@@ -1,37 +1,38 @@
-from __future__ import division
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import namedtuple, defaultdict
 from pprint import pprint
 
-Event = namedtuple('Event', 'str count prc type')
+#Event = namedtuple('Event', 'str count prc type')
+Event = namedtuple('Event', 'str count')
 
 def get_counters(file_name):
   counters = {}
   for line in open(file_name):
     if ((not line.startswith('#!')) and
-        (not line.startswith('##')) and
         line.startswith('#')):
-      tmp = line.strip().replace('#', '').replace('--', '').split(' ', 2)
-      counter_str = (tmp[1][:2] + tmp[0][:2]).lower()
-      counters[counter_str] = tmp[2]
+      tmp = line.strip().replace('#', '').split(' ', 3)
+      counter_str = (tmp[0][-4:]).lower()
+      counters[counter_str] = tmp[3]
   return counters
 
 def _parse_csv_file(file_name):
-  events = defaultdict(list)
+  events = {}
   for line in open(file_name):
     line = line.strip()
     if line and (not line.startswith('#')):
-      event_count, event_str, event_prc = line.split(',')
+      #event_count, event_str, event_prc = line.split(',')
+      event_count, event_str = line.split(',')
       assert(event_str.startswith('r'))
       event_str = event_str[1:].lower()
-      event_type = None
-      if ':' in event_str:
-        event_str, event_type = event_str.split(':')
-      event = Event(event_str, int(event_count), event_prc, event_type)
-      events[event_str].append(event)
-  return dict(events)
+      #event_type = None
+      #if ':' in event_str:
+        #event_str, event_type = event_str.split(':')
+      #event = Event(event_str, int(event_count), event_prc, event_type)
+      event = Event(event_str, float(event_count))
+      events[event_str] = event
+  return events
 
 def get_results(folder_name):
   results = {}
@@ -39,7 +40,7 @@ def get_results(folder_name):
     for f in fs:
       if f == 'perf-stats.csv':
         tmp = root.split('/')
-        assert(tmp[0] == '.')
+        assert(tmp[0] == '..')
         assert(tmp[1] == 'results-perf')
         results[tuple(tmp[2:])] = _parse_csv_file(os.path.join(root, f))
   return results
@@ -49,7 +50,7 @@ def _eval_term(d, term):
   r = {}
   for i in t:
     if i[0] == '$':
-      r[i] = d[i[1:]][0].count
+      r[i] = d[i[1:]].count
   for k in r:
     term = term.replace(k, str(r[k]))
 
@@ -63,36 +64,46 @@ def add_counter(results, counters, counter_name, counter_label, counter_term):
       count = _eval_term(v, counter_term)
     except KeyError:
       count = -1
-    v[counter_name] = [Event(counter_name, count, '100%', None)]
+    v[counter_name] = Event(counter_name, count)
   counters[counter_name] = counter_label
 
 def plot(results, counters, counter_name):
-  xs = []
-  ys = []
-  for b in 'tpch tpcc'.split():
-    for i in range(1,23):
-      key = ('pgsql', 'tpch', '1', 'q%02d'%i)
-      tmp = results.get(key)
-      xs.append(i)
-      ys.append(tmp[counter_name][0].count)
-  plt.ylabel(counters[counter_name])
-  plt.bar(xs, ys)
-  plt.show()
-
+  for db in 'pgsql monetdb'.split():
+    for bench in 'tpch'.split():
+      for scale in '1'.split():
+        xs = []
+        ys = []
+        for qry in range(1,23):
+          key = (db, bench, scale, 'q%02d'%qry)
+          tmp = results.get(key)
+          xs.append(qry)
+          ys.append(tmp[counter_name].count)
+        print xs
+        print ys
+        plt.ylabel(counters[counter_name])
+        plt.bar(xs, ys)
+        path="%s/%s/%s/%s"%(folder_output, db, bench, scale)
+        if not os.path.exists(path): os.makedirs(path)
+        plt.savefig("%s/%s.eps" % (path, counter_name))
 
 def _main():
-  file_name = "./common/perf-counters-axle.sh"
+  file_name = "../common/perf-counters-axle-list"
+  folder_name = "../results-perf"
+  global folder_output
+  folder_output = "../figures"
+
   counters = get_counters(file_name)
-  # pprint(counters)
-
-  folder_name = './results-perf'
+  #pprint(counters)
   results = get_results(folder_name)
-  # pprint(results)
+  #pprint(results)
 
-  add_counter(results, counters, 'c/i', 'Division', '$ff88 / $ff89 * $82d0')
-  add_counter(results, counters, 'i/c', '1/Division', '1 / $c/i')
+  # Add metrics of interest
+  add_counter(results, counters, 'ipc', 'IPC', '( $00c0:k + $00c0:u ) / ( $003c:k + $003c:u )')
+  #add_counter(results, counters, 'cpi', 'CPI', '1 / $ipc')
 
-  plot(results, counters, 'ff88')
+  # Plot metric of interest
+  plot(results, counters, 'ipc')
+  #plot(results, counters, 'cpi')
 
 if __name__ == '__main__':
   _main()

@@ -44,9 +44,9 @@ do
             echo "Running query $i for counters $counter."
             # Execute queries using perf stat, repeat 3
             LC_NUMERIC=C perf stat --append -o perf-stats.csv \
-                -r 3 -e $counter --pid=$MDBPID -x "," -- \
+                -r 1 -e $counter --pid=$MDBPID -x "," -- \
                 $MDBBINDIR/mclient -d $DB_NAME < $QUERIESDIR/q$ii.sql \
-                2> stderr.txt > stdout.txt
+                2> stderr_$counter.txt > stdout_$counter.txt
         done
     fi
 
