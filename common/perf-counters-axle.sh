@@ -11,12 +11,9 @@ array_index=0
 
 # create the array dynamically using the list
 for elem in $list; do
-    if [ $it -eq 1 ]; then
-        array_item=${array_item}\"
-    fi
 
     if [ $it -eq $merge_level ]; then
-        array_item=${array_item}${elem}\"
+        array_item=${array_item}${elem}
         array[$array_index]=$array_item
         ((array_index++))
         it=1
@@ -25,11 +22,13 @@ for elem in $list; do
     fi
 
     array_item=${array_item}${elem},
+
     ((it++))
 done
-# don't forget counters if not divisible by merge_level!
+# don't forget counters if not divisable by merge_level!
 if [ $array_item != "" ]; then
-    array_item=${array_item}\"
+    array_item=`echo ${array_item} | sed 's/,$//g'`
+    array_item=${array_item}
     array[$array_index]=$array_item
 fi
 

@@ -3,20 +3,20 @@
 #r003C:u 3CH 00H Number of thread cycles while the thread is not in a halt state. user-level
 #r003C:k 3CH 00H Number of thread cycles while the thread is not in a halt state. kernel-level
 #r81D0 D0H 81H ALL Load uops retired to architectural path.
-#r82D0 D0H 82H ALL Store uops retired to architectural path.
+#r405B 5BH 40H Cycles Allocator is stalled due Branch Order Buffer.
 #r1003 03H 10H Number of cases where any load is blocked but has no DCU miss
 #r0C5B 5BH 0CH Cycles stalled due to free list empty.
 #r0F5B 5BH 0FH Cycles stalled due to control structures full for physical registers.
-#r405B 5BH 40H Cycles Allocator is stalled due Branch Order Buffer.
+#r82D0 D0H 82H ALL Store uops retired to architectural path.
 #r4F5B 5BH 4FH Cycles stalled due to out of order resources full.
 #r0187 87H 01H Stalls caused by changing prefix length of the instruction.
 #r0487 87H 04H Stall cycles due to IQ is full.
-#r01A2 A2H 01H Cycles Allocation is stalled due to Resource Related reason.
+#r20A2 A2H 20H Cycles stalled due to writing the FPU control word.
 #r02A2 A2H 02H Counts the cycles of stall due to lack of load buffers.
 #r04A2 A2H 04H Cycles stalled due to no eligible RS entry available.
 #r08A2 A2H 08H Cycles stalled due to no store buffers available.
 #r10A2 A2H 10H Cycles stalled due to re-order buffer full.
-#r20A2 A2H 20H Cycles stalled due to writing the FPU control word.
+#r01A2 A2H 01H Cycles Allocation is stalled due to Resource Related reason.
 #r04A3 A3H 04H Cycles of dispatch stalls. Set AnyThread to count per core.
 #r02C1 C1H 02H Instructions that experienced an ITLB miss.
 #r0185 85H 01H Misses in all ITLB levels that cause page walks.
