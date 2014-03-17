@@ -7,7 +7,7 @@ from pprint import pprint
 #Event = namedtuple('Event', 'str count prc type')
 Event = namedtuple('Event', 'str count')
 
-def get_counters(file_name):
+def get_counters():
   counters = {}
   for line in open(file_name):
     if ((not line.startswith('#!')) and
@@ -34,15 +34,13 @@ def _parse_csv_file(file_name):
       events[event_str] = event
   return events
 
-def get_results(folder_name):
+def get_results():
   results = {}
-  for root, sfs, fs in os.walk(folder_name):
+  for root, sfs, fs in os.walk(folder_results):
     for f in fs:
       if f == 'perf-stats.csv':
         tmp = root.split('/')
-        assert(tmp[0] == '..')
-        assert(tmp[1] == 'results-perf')
-        results[tuple(tmp[2:])] = _parse_csv_file(os.path.join(root, f))
+        results[tuple(tmp[1:])] = _parse_csv_file(os.path.join(root, f))
   return results
 
 def _eval_term(d, term):
@@ -57,7 +55,7 @@ def _eval_term(d, term):
   count = eval(term)
   return count
 
-def add_counter(results, counters, counter_name, counter_label, counter_term):
+def add_counter(counters, results, counter_name, counter_label, counter_term):
   for k in results:
     v = results[k]
     try:
@@ -67,43 +65,67 @@ def add_counter(results, counters, counter_name, counter_label, counter_term):
     v[counter_name] = Event(counter_name, count)
   counters[counter_name] = counter_label
 
-def plot(results, counters, counter_name):
-  for db in 'pgsql monetdb'.split():
-    for bench in 'tpch'.split():
-      for scale in '1'.split():
+def plot(counters, results, counter_name):
+  for db in databases:
+    for bench in benchmarks:
+      for scale in scales:
         xs = []
         ys = []
-        for qry in range(1,23):
+        for qry in queries:
           key = (db, bench, scale, 'q%02d'%qry)
           tmp = results.get(key)
           xs.append(qry)
-          ys.append(tmp[counter_name].count)
+          try:
+            ys.append(tmp[counter_name].count)
+          except TypeError:
+            ys.append(-1)
         print xs
         print ys
-        plt.ylabel(counters[counter_name])
-        plt.bar(xs, ys)
-        path="%s/%s/%s/%s"%(folder_output, db, bench, scale)
+        fig, ax = plt.subplots()
+        ax.set_ylabel(counters[counter_name])
+        ax.bar(xs, ys)
+        path="%s/%s/%s/%s"%(folder_figures, db, bench, scale)
         if not os.path.exists(path): os.makedirs(path)
-        plt.savefig("%s/%s.eps" % (path, counter_name))
+        plt.savefig("%s/%s-%s-%s-%s.eps" % (path, counter_name, db, bench, scale))
+        #fig.show()
 
 def _main():
-  file_name = "../common/perf-counters-axle-list"
-  folder_name = "../results-perf"
-  global folder_output
-  folder_output = "../figures"
+  global folder_figures, file_name, folder_results, databases, benchmarks, scales, queries
 
-  counters = get_counters(file_name)
+  # Go to profiler's base dir
+  os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/..')
+
+  # Configuration parameters
+  file_name = "common/perf-counters-axle-list"
+  folder_results = "results-perf/"
+  folder_figures = "figures/" + folder_results
+  databases = 'pgsql monetdb'.split()
+  benchmarks = 'tpch'.split()
+  scales = '1 100'.split()
+  queries = range(1,23)
+
+  # Get counters of interest and read results
+  counters = get_counters()
   #pprint(counters)
-  results = get_results(folder_name)
+  results = get_results()
   #pprint(results)
 
   # Add metrics of interest
-  add_counter(results, counters, 'ipc', 'IPC', '( $00c0:k + $00c0:u ) / ( $003c:k + $003c:u )')
-  #add_counter(results, counters, 'cpi', 'CPI', '1 / $ipc')
+  add_counter(counters, results, 'total_cycles', 'Total cycles', '$003c:k + $003c:u')
+  add_counter(counters, results, 'total_insts', 'Total insts', '$00c0:k + $00c0:u')
+  add_counter(counters, results, 'prcnt_kernel', '% Kernel cycles', '( $003c:k / $total_cycles ) * 100')
+  add_counter(counters, results, 'ipc', 'IPC', '$total_insts / $total_cycles')
+  add_counter(counters, results, 'cpi', 'CPI', '1 / $ipc')
+  add_counter(counters, results, 'prcnt_misspred_branches', '% Misspredicted branches', '( $00c5 / $00c4 ) * 100')
+  add_counter(counters, results, 'prcnt_misspred_cond_branches', '% Misspredicted conditional branches', '( $01c5 / $01c4 ) * 100')
+  #add_counter(counters, results, '', '', '')
 
   # Plot metric of interest
-  plot(results, counters, 'ipc')
-  #plot(results, counters, 'cpi')
+  plot(counters, results, 'prcnt_kernel')
+  plot(counters, results, 'ipc')
+  plot(counters, results, 'cpi')
+  plot(counters, results, 'prcnt_misspred_branches')
+  plot(counters, results, 'prcnt_misspred_cond_branches')
 
 if __name__ == '__main__':
   _main()
