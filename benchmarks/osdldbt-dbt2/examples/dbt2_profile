@@ -1,0 +1,18 @@
+#
+# PostgreSQL specific variables.
+#
+
+# Database listener port.
+DBT2PORT=5432; export DBT2PORT
+
+# Database instance name.
+DBT2DBNAME=dbt2; export DBT2DBNAME
+
+# Database instance path.
+DBT2PGDATA=${HOME}/local/dbt2/pgdata; export DBT2PGDATA
+
+# Directory with tablespace mount points, if using tablespaces.
+DBT2TSDIR=${HOME}/local/dbt2; export DBT2TSDIR
+
+# Flag to use PGPOOL.
+USE_PGPOOL=0; export USE_PGPOOL

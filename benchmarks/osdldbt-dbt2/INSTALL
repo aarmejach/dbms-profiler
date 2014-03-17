@@ -1,0 +1,28 @@
+Building DBT-2:
+
+	# Configure
+	cmake -DDBMS=<drizzle|mysql|pgsql|sapdb>
+	# Build
+	make
+
+-----
+
+Installing DBT-2:
+
+	make install DESTDIR=/usr/local
+
+This will put all binaries in '/usr/local/bin'.
+
+-----
+
+Uninstalling DBT-2:
+
+	xargs rm < install_manifest.txt
+
+The file 'install_manifest.txt' will be created after running 'make install'.
+
+-----
+
+Running DBT-2
+
+The scripts require R and the python rpy2 packages to be installed.
