@@ -1,0 +1,86 @@
+#!/bin/bash
+
+self="$(basename "$0")"
+self_dir="$(dirname "$0")"
+bin_dir=`cd "${self_dir}"; pwd`
+top_dir=`cd "${self_dir}"/..; pwd`
+unset self_dir
+
+source ${bin_dir}/dbt2-nuodb-profile || exit 1
+
+FORCE=0
+
+usage() {
+
+    if [ "$1" != "" ];
+    then
+	    echo ''
+	    echo "error: $1"
+    fi
+
+    echo ''
+    echo 'usage: start_db.sh [options]'
+    echo 'options:'
+    echo '       -f force recreation of the database'
+    echo ''
+    echo 'Example: bash start_db.sh -f'
+    echo ''
+}
+
+while getopts "fs:o:p:" opt; do
+    case $opt in
+    f)
+        FORCE=1
+        ;;
+	o)
+		OUTDIR=${OPTARG}
+        ;;
+	p)
+        PARAMETERS=$OPTARG
+        ;;
+    ?)
+        usage
+        exit 1
+        ;;
+    esac
+done
+
+function broker()
+{
+	echo "[INFO]: Starting broker" | tee -a ${LOG_FILE}
+	java -jar ${NUODB_AGENT} --broker --port ${DB_PORT} --domain ${DB_DOMAIN} --password ${DB_DOMAIN_PASSWORD} --verbose --bin-dir ${NUODB_HOME}/bin --port-range ${DB_PORT_RANGE} >> ${DB_LOGS}/${DB_NAME}-broker.log 2>&1 &
+	echo -e "\tExecute: java -jar ${NUODB_AGENT} --broker --port ${DB_PORT} --domain ${DB_DOMAIN} --password ${DB_DOMAIN_PASSWORD} --verbose --bin-dir ${NUODB_HOME}/bin --port-range ${DB_PORT_RANGE} >> ${DB_LOGS}/${DB_NAME}-broker.log 2>&1 &"
+	sleep 3
+}
+
+function startte()
+{
+    echo "[INFO] Starting transaction engine" | tee -a ${LOG_FILE}
+    TE_ARGS="--dba-user ${DB_USER} --dba-password ${DB_PASSWORD} ${ENGINE_ARGS}"
+    ${NUODB_MANAGER} "start process te host ${DB_HOST}:${DB_PORT} database ${DB_NAME} options '${TE_ARGS}'" | tee -a ${LOG_FILE}
+    sleep 1
+}
+
+function startsm()
+{
+    echo "[INFO] Starting archive manager and recreating database" | tee -a ${LOG_FILE}
+    if [ ! -d "${DB_DATA}" ]; then
+        mkdir -p "${DB_DATA}"
+    fi
+    SM_ARGS="${ENGINE_ARGS}"
+    if [ $FORCE -eq 1 ]; then
+        rm -fr ${DB_DATA}
+        mkdir -p ${DB_DATA}
+        ${NUODB_MANAGER} "start process sm archive ${DB_DATA}/${DB_NAME} host ${DB_HOST}:${DB_PORT} database ${DB_NAME} initialize yes options '${SM_ARGS}'" | tee -a ${LOG_FILE}
+    else
+        ${NUODB_MANAGER} "start process sm archive ${DB_DATA}/${DB_NAME} host ${DB_HOST}:${DB_PORT} database ${DB_NAME} options '${SM_ARGS}'" | tee -a ${LOG_FILE}
+    fi
+    sleep 2
+}
+
+rm -fr ${DB_LOGS}
+mkdir -p ${DB_LOGS}
+
+broker
+startsm
+startte

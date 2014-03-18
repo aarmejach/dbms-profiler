@@ -1,0 +1,34 @@
+#!/bin/bash
+
+: ${NUODB_HOME:="/opt/nuodb"}
+: ${DB_HOST:="localhost"}
+: ${DB_ENGINE_HOSTS:="localhost"}
+: ${DB_PORT:="48004"}
+: ${DB_DOMAIN:="domain"}
+: ${DB_DOMAIN_PASSWORD:="bird"}
+: ${DB_NAME:="dbt2"}
+: ${DB_USER:="dbt2"}
+: ${DB_PASSWORD="dbt2"}
+: ${DB_PORT_RANGE:="48010,48999"}
+: ${DB_DATA:="/tmp/dbt2/data"}
+: ${DB_LOGS:="/tmp/dbt2/logs"}
+: ${LOG_FILE:="/dev/null"}
+: ${ENGINE_ARGS:="--verbose dump"}
+: ${NUODB_SQL:=${NUODB_HOME}/bin/nuosql}
+: ${NUODB_LOADER:=${NUODB_HOME}/bin/nuoloader}
+: ${NUODB_MANAGER:="java -jar ${NUODB_HOME}/jar/nuodbmanager.jar"}
+	
+NUODB_MANAGER="${NUODB_MANAGER} --user ${DB_DOMAIN} --password ${DB_DOMAIN_PASSWORD} --broker ${DB_HOST}:${DB_PORT} --command"
+
+NUODB_AGENT=${NUODB_HOME}/bin/nuoagent.jar
+if [ ! -e ${NUODB_AGENT} ]; then
+	NUODB_AGENT=${NUODB_HOME}/jar/nuoagent.jar
+fi  
+
+if [ ! -d ${DB_DATA} ]; then
+    mkdir -p ${DB_DATA}
+fi
+
+if [ ! -d ${DB_LOGS} ]; then
+    mkdir -p ${DB_LOGS}
+fi

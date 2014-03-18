@@ -1,0 +1,158 @@
+#!/usr/bin/env python
+
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2006      Open Source Development Labs, Inc.
+#               2006-2010 Mark Wong
+#
+from contextlib import closing
+from math import sqrt
+
+import sys
+import os
+
+__90_percentile_stddev__ = 1.28
+
+if len(sys.argv) != 2:
+    print 'usage: %s <mix.log>' % sys.argv[0]
+    sys.exit(1)
+
+filename = sys.argv[1]
+
+if not os.path.exists(filename):
+    print 'cannot open file: %s' % filename
+    sys.exit(1)
+
+transaction_name = dict()
+transaction_name['d'] = 'Delivery'
+transaction_name['n'] = 'New Order'
+transaction_name['o'] = 'Order Status'
+transaction_name['p'] = 'Payment'
+transaction_name['s'] = 'Stock Level'
+
+result_name = dict()
+result_name['C'] = 'Complete'
+result_name['R'] = 'Rollback'
+result_name['E'] = 'Error'
+
+transaction_count = dict()
+rollback_count = dict()
+sum_rt = dict()
+sumsq_rt = dict()
+
+steadystate_start = 0
+steadystate_end = 0
+rampup_start = 0
+error_count = 0
+
+for key in transaction_name.keys():
+    transaction_count[key] = 0
+    rollback_count[key] = 0
+    sum_rt[key] = 0
+    sumsq_rt[key] = 0
+
+steadystate = False
+with closing(open(filename, 'r')) as mix_file:
+    for line in mix_file:
+        vars = line.split(',')
+        V1_timestamp = int(vars[0])
+        if len(vars) < 2 or vars[1] == 'TERMINATED':
+            continue
+        else:
+            V2_txkey = vars[1]
+        if len(vars) != 5:
+            print 'Result mix file, invalid line: %s' % line
+            continue
+
+        if steadystate:
+            V3_txresult = vars[2]
+            if V2_txkey not in transaction_name:
+                print 'Invalid transaction key, ignoring line: %s' % line
+                continue
+            if V3_txresult not in result_name:
+                print 'Invalid result flag, ignoring line: %s' % line
+                continue
+
+            transaction_count[V2_txkey] += 1
+            if V3_txresult == 'R':
+                rollback_count[V2_txkey] += 1
+            elif V3_txresult == 'E':
+                error_count += 1
+                continue
+
+            #Note: we include rolled back txns in response time avg because original dbt2 does
+            V4_rt = float(vars[3])
+            sum_rt[V2_txkey] += V4_rt
+            sumsq_rt[V2_txkey] += V4_rt * V4_rt
+
+            steadystate_end = V1_timestamp
+
+        else:
+            if V2_txkey == 'START':
+                steadystate = True
+                steadystate_start = V1_timestamp
+                continue
+            elif rampup_start == 0:
+                rampup_start = V1_timestamp
+                continue
+
+if steadystate_start<= rampup_start:
+    print 'START market not found in: %s' % filename
+    sys.exit(1)
+if steadystate_start >= steadystate_end:
+    print 'No data was collected during the steady state portion of the test.'
+    sys.exit(1)
+
+average_rt = dict()
+per90 = dict()
+total_transaction_count = 0
+for key in transaction_name.keys():
+    if transaction_count[key] >1:
+        total_transaction_count += transaction_count[key]
+        average_rt[key] = sum_rt[key] / transaction_count[key]
+        #Note: estimating 90th percentile from standard deviation, for efficiency
+        stddev = sqrt((sumsq_rt[key] / transaction_count[key]) - (average_rt[key] * average_rt[key]))
+        per90[key] = average_rt[key] + stddev * __90_percentile_stddev__
+    else:
+        average_rt[key] = 0;
+        per90[key] = 0;
+
+
+print '                         Response Time (s)'
+print ' Transaction      %    Average :    90th %        Total        Rollbacks      %'
+print '------------  -----  ---------------------  -----------  ---------------  -----'
+
+for key in transaction_name.keys():
+    try:
+        mix_percentage = float(transaction_count[key]) /\
+                         float(total_transaction_count) * 100.0
+    except ZeroDivisionError:
+        mix_percentage = 0
+
+    try:
+        rollback_percentage = float(rollback_count[key]) /\
+                              float(transaction_count[key]) * 100.0
+    except ZeroDivisionError:
+        rollback_percentage = 0
+
+    print '%12s  %5.2f  %9.3f : %9.3f  %11d  %15d  %5.2f' % (
+        transaction_name[key],
+        mix_percentage,
+        average_rt[key],
+        per90[key],
+        transaction_count[key],
+        rollback_count[key],
+        rollback_percentage)
+
+print '------------  -----  ---------------------  -----------  ---------------  -----'
+
+duration = float(steadystate_end - steadystate_start)
+print
+print '%0.2f new-order transactions per minute (NOTPM)' %\
+      (float(transaction_count['n']) * 60.0 / duration)
+print '%0.1f minute duration' % (duration / 60.0)
+print '%d total unknown errors' % error_count
+print '%0.1f seconds(s) ramping up' %\
+      (float(steadystate_start - rampup_start) / 60.0)

@@ -1,0 +1,337 @@
+#!/bin/bash
+
+self="$(basename "$0")"
+self_dir="$(dirname "$0")"
+bin_dir=`cd "${self_dir}"; pwd`
+top_dir=`cd "${self_dir}"/..; pwd`
+unset self_dir
+
+source ${bin_dir}/dbt2-nuodb-profile || exit 1
+
+usage() {
+
+    if [ "$1" != "" ];
+    then
+	    echo ''
+	    echo "error: $1"
+    fi
+
+    echo ''
+    echo 'usage: dbt2-nuodb-load-db [options]'
+    echo 'options:'
+    echo '       -n <database name>'
+    echo '       -d <path to dataset files>'
+    echo '       -g (generate data files)'
+    echo '       -h <database host>'
+    echo '       -u <database user>'
+    echo '       -p <database password>'
+    echo '       -s <database schema>'
+    echo '       -N <do not start database>'  
+    echo '       -v <verbose>'
+    echo '       -w <scale factor>'
+    echo ''
+    echo 'Example: bash build_db.sh -d dbt2 -f /tmp/dbt2-w3'
+    echo ''
+}
+
+VERBOSE=0
+GENERATE_DATAFILE=0
+WAREHOUSES=1
+
+command_exec() {
+    if [ -n "$VERBOSE" ];
+    then
+	    echo "Executed command: $1"
+    fi
+
+    eval "$1"
+
+    rc=$?
+	if [ $rc -ne 0 ];
+    then
+	    echo "ERROR: rc=$rc"
+		case $rc in
+	        127) echo "COMMAND NOT FOUND"
+	        ;;
+	    *) echo "SCRIPT INTERRUPTED"
+	        ;;
+	    esac
+        exit 255
+    fi
+}
+
+load_tables() {
+
+    STOCK="INSERT INTO ${DB_NAME}.stock (s_i_id, s_w_id, s_quantity, s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05, s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10, s_ytd, s_order_cnt, s_remote_cnt, s_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+
+    ITEM="INSERT INTO ${DB_NAME}.item (i_id, i_im_id, i_name, i_price, i_data) VALUES (?,?,?,?,?)"
+
+    ORDER_LINE="INSERT INTO ${DB_NAME}.order_line (ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_delivery_d, ol_quantity, ol_amount, ol_dist_info) VALUES (?,?,?,?,?,?,?,?,?,?)"
+
+    ORDER="INSERT INTO ${DB_NAME}.orders (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local) VALUES (?,?,?,?,?,?,?,?)"
+
+    NEW_ORDER="INSERT INTO ${DB_NAME}.new_order (no_o_id, no_d_id, no_w_id) VALUES (?,?,?)"
+
+    HISTORY="INSERT INTO ${DB_NAME}.history (h_c_id, h_c_d_id, h_c_w_id, h_d_id, h_w_id, h_date, h_amount, h_data) VALUES (?,?,?,?,?,?,?,?)"
+
+    CUSTOMER="INSERT INTO ${DB_NAME}.customer (c_id, c_d_id, c_w_id, c_first, c_middle, c_last, c_street_1, c_street_2, c_city, c_state, c_zip, c_phone, c_since, c_credit, c_credit_lim, c_discount, c_balance, c_ytd_payment, c_payment_cnt, c_delivery_cnt, c_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+
+    DISTRICT="INSERT INTO ${DB_NAME}.district (d_id, d_w_id, d_name, d_street_1, d_street_2, d_city, d_state, d_zip, d_tax, d_ytd, d_next_o_id) VALUES (?,?,?,?,?,?,?,?,?,?, 3001)"
+
+    WAREHOUSE="INSERT INTO ${DB_NAME}.warehouse (w_id, w_name,w_street_1, w_street_2, w_city, w_state, w_zip, w_tax, w_ytd) VALUES (?,?,?,?,?,?,?,?,?)"
+
+    # /var/tmp/dbt2/data/warehouse.data
+    TABLES="CUSTOMER DISTRICT HISTORY WAREHOUSE ITEM NEW_ORDER ORDER ORDER_LINE STOCK"
+    for TABLE in $TABLES ;
+    do
+        echo "Loading table $TABLE"
+        BASE_FILENAME=`echo $TABLE | tr '[A-Z]' '[a-z]'`
+        FILENAME="${DB_DATA}/${BASE_FILENAME}.data"
+        echo $FILENAME
+        SQL_TEXT=`eval "echo -e \\$${TABLE}"`
+        #echo "SQL_TEXT: ${SQL_TEXT}"
+        command_exec "${NUODB_LOADER} --user ${DB_USER} --password ${DB_PASSWORD} --import ${FILENAME},separator=tab --schema ${DB_NAME} --to \"${SQL_TEXT}\" ${DB_NAME}@${DB_HOST}:${DB_PORT} &"
+    done
+
+
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/delivery.sql >/dev/null"
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/new_order_2.sql >/dev/null"
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/new_order.sql >/dev/null"
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/order_status.sql >/dev/null"
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/payment.sql >/dev/null"
+    command_exec "${NUODB_SQL} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} ${DB_NAME}@${DB_HOST}:${DB_PORT} < ${top_dir}/storedproc/stock_level.sql >/dev/null"
+
+    wait
+}
+
+create_tables() {
+
+    WAREHOUSE="create table warehouse (
+        w_id int not null default '0',
+        w_name varchar(10),
+        w_street_1 varchar(20),
+        w_street_2 varchar(20),
+        w_city varchar(20),
+        w_state char(2),
+        w_zip char(9),
+        w_tax real,
+        w_ytd numeric(24, 12),
+        primary key (w_id)
+        ) with record_batching = 1"
+
+#    DISTRICT="create table district (
+#        d_id int not null default '0',
+#        d_w_id int not null default '0',
+#        d_name varchar(10),
+#        d_street_1 varchar(20),
+#        d_street_2 varchar(20),
+#        d_city varchar(20),
+#        d_state char(2),
+#        d_zip char(9),
+#        d_tax real,
+#        d_ytd numeric(24, 12),
+#        d_next_o_id int,
+#        primary key (d_w_id, d_id)
+#        )"
+
+    ORDER_SEQ="create sequence order_seq start with 3001"
+
+    DISTRICT="create table district (
+        d_id int not null default '0',
+        d_w_id int not null default '0',
+        d_name varchar(10),
+        d_street_1 varchar(20),
+        d_street_2 varchar(20),
+        d_city varchar(20),
+        d_state char(2),
+        d_zip char(9),
+        d_tax real,
+        d_ytd numeric(24, 12),
+        d_next_o_id integer,
+        primary key (d_w_id, d_id)
+        ) with record_batching = 2"
+
+    CUSTOMER="create table customer (
+        c_id int not null default '0',
+        c_d_id int not null default '0',
+        c_w_id int not null default '0',
+        c_first varchar(16),
+        c_middle char(2),
+        c_last varchar(16),
+        c_street_1 varchar(20),
+        c_street_2 varchar(20),
+        c_city varchar(20),
+        c_state char(2),
+        c_zip char(9),
+        c_phone char(16),
+        c_since timestamp,
+        c_credit char(2),
+        c_credit_lim numeric(24, 12),
+        c_discount real,
+        c_balance numeric(24, 12),
+        c_ytd_payment numeric(24, 12),
+        c_payment_cnt real,
+        c_delivery_cnt real,
+        c_data text,
+        primary key (c_w_id, c_d_id, c_id)
+        )"
+
+    HISTORY="create table history (
+        h_c_id int,
+        h_c_d_id int,
+        h_c_w_id int,
+        h_d_id int,
+        h_w_id int,
+        h_date timestamp,
+        h_amount real,
+        h_data varchar(24)
+        )"
+
+    NEW_ORDER="create table new_order (
+        no_o_id int not null default '0',
+        no_d_id int not null default '0',
+        no_w_id int not null default '0',
+        primary key (no_w_id, no_d_id, no_o_id)
+        )"
+
+    ORDERS="create table orders (
+        o_id int not null default '0',
+        o_d_id int not null default '0',
+        o_w_id int not null default '0',
+        o_c_id int,
+        o_entry_d timestamp,
+        o_carrier_id int,
+        o_ol_cnt int,
+        o_all_local real,
+        primary key (o_w_id, o_d_id, o_id)
+        )"
+
+    ORDER_LINE="create table order_line (
+        ol_o_id int not null default '0',
+        ol_d_id int not null default '0',
+        ol_w_id int not null default '0',
+        ol_number int not null default '0',
+        ol_i_id int,
+        ol_supply_w_id int,
+        ol_delivery_d timestamp,
+        ol_quantity real,
+        ol_amount real,
+        ol_dist_info varchar(24),
+        primary key (ol_w_id, ol_d_id, ol_o_id, ol_number)
+        )"
+
+    ITEM="create table item (
+        i_id int not null default '0',
+        i_im_id int,
+        i_name varchar(24),
+        i_price real,
+        i_data varchar(50),
+        primary key (i_id)
+        )"
+
+    STOCK="create table stock (
+        s_i_id int not null default '0',
+        s_w_id int not null default '0',
+        s_quantity real not null default '0',
+        s_dist_01 varchar(24),
+        s_dist_02 varchar(24),
+        s_dist_03 varchar(24),
+        s_dist_04 varchar(24),
+        s_dist_05 varchar(24),
+        s_dist_06 varchar(24),
+        s_dist_07 varchar(24),
+        s_dist_08 varchar(24),
+        s_dist_09 varchar(24),
+        s_dist_10 varchar(24),
+        s_ytd numeric(16, 8),
+        s_order_cnt real,
+        s_remote_cnt real,
+        s_data varchar(50),
+        primary key (s_w_id, s_i_id)
+        )"
+
+    TABLES="STOCK ITEM ORDER_LINE ORDERS NEW_ORDER HISTORY CUSTOMER ORDER_SEQ DISTRICT WAREHOUSE"
+    for TABLE in $TABLES ;
+    do
+        echo "Creating table $TABLE"
+        FILE="$(mktemp 'XXXXXXXXXX.sql')" || { echo "Failed to create temp file"; exit 1; }
+        eval "echo -e \$$TABLE \; \\\\n quit" >> $FILE
+        command_exec "$NUODB_SQL ${DB_NAME}@${DB_HOST}:${DB_PORT} --user ${DB_USER} --password ${DB_PASSWORD} --schema ${DB_NAME} --file ${FILE}"
+        rm -f $FILE
+    done
+}
+
+while getopts "n:d:gs:h:u:p:vs:w:Ns:" opt; do
+    case $opt in
+    n)
+        DB_NAME=${OPTARG}
+        ;;
+    d)
+        DB_DATA=$OPTARG
+        ;;
+    g)
+        GENERATE_DATAFILE=1
+        ;;
+    h)
+        DB_HOST=$OPTARG
+        ;;
+    u)
+        DB_USER=$OPTARG
+        ;;
+    p)
+        DB_PASSWORD=$OPTARG
+        ;;	
+    N)
+		DB_MGMT_OFF=1
+		;;
+    v)
+        VERBOSE=1
+        ;;
+    w)
+        WAREHOUSES=${OPTARG}
+        ;;
+    ?)
+        usage
+        exit 1
+        ;;
+    esac
+done
+
+echo ""
+echo "Configuration:"
+echo ""
+echo "  DB_HOST:            $DB_HOST"
+echo "  DB_PORT:            $DB_PORT"
+echo "  DB_NAME:            $DB_NAME"
+echo "  DB_USER:            $DB_USER"
+echo "  DB_PASSWORD:        $DB_PASSWORD"
+echo "  DB_DOMAIN:          $DB_DOMAIN"
+echo "  DB_DOMAIN_PASSWORD: $DB_DOMAIN_PASSWORD"
+echo "  DB_DATA:            $DB_DATA"
+echo "  DB_LOGS:            $DB_LOGS"
+echo "  WAREHOUSES:         $WAREHOUSES"
+echo "  GENERATE_DATAFILE:  $GENERATE_DATAFILE"
+
+# todo: add code here to start the database if it is not presently started...
+# if [ ! ${DB_MGMT_OFF} ]; then
+# fi
+
+# optionally generate data files...
+
+mkdir -p ${DB_DATA}
+if [ ${GENERATE_DATAFILE} -eq 1 ]; then
+    ${bin_dir}/dbt2-datagen -d ${DB_DATA} -w ${WAREHOUSES} --nuodb || exit 1
+fi
+
+FILE="$(mktemp 'XXXXXXXXXX.sql')"
+echo "drop schema ${DB_NAME} cascade;" > ${FILE}
+command_exec "$NUODB_SQL ${DB_NAME}@${DB_HOST}:${DB_PORT} --user ${DB_USER} --password ${DB_PASSWORD} --file ${FILE}"
+rm -f ${FILE}
+
+echo ""
+create_tables
+
+# load the tables...
+
+echo ""
+load_tables

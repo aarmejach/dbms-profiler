@@ -1,0 +1,27 @@
+#!/bin/bash
+
+self="$(basename "$0")"
+self_dir="$(dirname "$0")"
+bin_dir=`cd "${self_dir}"; pwd`
+top_dir=`cd "${self_dir}"/..; pwd`
+unset self_dir
+
+source ${bin_dir}/dbt2-nuodb-profile || exit 1
+
+function shutdown()
+{
+    killall mpstat iostat sar || true
+    echo "[INFO] Shutting down chorus and monitors" | tee -a ${LOG_FILE}
+    ${NUODB_MANAGER} "shutdown database ${DB_NAME}" | tee -a ${LOG_FILE}
+    sleep 2
+    NUOWEB_CONSOLE_PID=$(echo `ps -wopid,args | grep nuodbwebconsole.jar | grep -v grep` | cut -d" " -f1)
+    if [ -n "${NUOWEB_CONSOLE_PID}" ]; then
+        kill -TERM ${NUOWEB_CONSOLE_PID} || true
+    fi
+    BROKER_PID=$(echo `ps -wopid,args | grep nuoagent.jar | grep -v grep` | cut -d" " -f1)
+    if [ -n "${BROKER_PID}" ]; then
+        kill -TERM ${BROKER_PID} || true
+    fi
+}
+
+shutdown

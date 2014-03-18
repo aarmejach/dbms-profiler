@@ -1,0 +1,281 @@
+#!/bin/bash
+
+self="$(basename "$0")"
+self_dir="$(dirname "$0")"
+bin_dir=`cd "${self_dir}"; pwd`
+top_dir=`cd "${self_dir}"/..; pwd`
+unset self_dir
+
+trap 'echo "Test was interrupted by Control-C."; \
+	killall dbt2-client dbt2-driver' INT
+trap 'echo "Test was interrupted. Got TERM signal."; \
+	killall dbt2-client dbt2-driver ' TERM
+
+usage()
+{
+	if [ "$1" != "" ]; then
+		echo
+		echo "error: $1"
+	fi
+
+	echo
+	echo "usage: `basename $0` -h"
+	echo "usage: `basename $0`"
+	echo "       -c <number of database connections>"
+    echo "       -d <duration seconds>"
+	echo "       -w <number of warehouses>"
+	echo "       -a <the first warehouse>"
+	echo "       -b <the last warehouse>"
+    echo "       -o <path>"
+    echo "       [options]"
+	echo "options:"
+	echo "       -H <database host name. (default localhost)>"
+	echo "       -P <database port number>"
+	echo "       -S <MySQL unix-domain socket>"	
+	echo "       -D <database name>"
+	echo "       -u <database user>"
+	echo "       -p <database password>"
+	echo "       -t <threads per warehouse. (default 10)>"
+	echo "       -s <delay of starting of new threads in milliseconds>"
+	echo "       -n <no thinking or keying time (default no)>"
+	echo
+	echo "Example: dbt2-run-pos -c 20 -d 100 -w 1"
+	echo "Test will be run for 120 seconds with 20 database connections and"
+	echo "scale factor (num of warehouses) 1."
+	echo
+}
+
+validate_parameter()
+{
+	if [ "$2" != "$3" ]; then
+		usage "wrong argument '$2' for parameter '-$1'"
+		exit 1
+	fi
+}
+
+DB_HOST=localhost
+
+SLEEPY=1000 # milliseconds
+THREADS_PER_WAREHOUSE=10
+
+CLIENT_HOST=localhost
+CLIENT_PORT=30000
+
+while getopts "c:d:w:a:b:o:H:P:S:D:u:p:ns:s:t:hs:" opt; do
+	case $opt in
+	c)
+		# Check for numeric value
+		CONNECTIONS=`echo $OPTARG | egrep "^[0-9]+$"`
+		validate_parameter $opt $OPTARG $CONNECTIONS
+		;;
+	d)
+		DURATION=`echo $OPTARG | egrep "^[0-9]+$"`
+		validate_parameter $opt $OPTARG $DURATION
+		;;
+	w)
+		WAREHOUSES=${OPTARG}
+		;;
+	a)
+		WMIN=${OPTARG}
+		;;
+	b)
+		WMAX=${OPTARG}
+		;;
+	o)
+		OUTPUT_DIR=${OPTARG}
+		;;
+	H)
+		DB_HOST=${OPTARG}
+		;;
+	P)
+		DB_PORT=`echo $OPTARG | egrep "^[0-9]+$"`
+		validate_parameter $opt $OPTARG $DB_PORT
+		;;
+	S)
+		DB_SOCKET=${OPTARG}
+		;;
+	D)
+		DB_NAME=${OPTARG}
+		;;
+	u)
+		DB_USER=${OPTARG}
+		;;
+	p)
+		DB_PASS=${OPTARG}
+		;;
+	t)
+		THREADS_PER_WAREHOUSE=`echo ${OPTARG} | egrep "^[0-9]+$"`
+		validate_parameter $opt $OPTARG $THREADS_PER_WAREHOUSE
+		;;
+	s)
+		SLEEPY=`echo ${OPTARG} | egrep "^[0-9]+$"`
+		validate_parameter ${opt} ${OPTARG} ${SLEEPY}
+		;;
+	n)
+		NO_THINK="-ktd 0 -ktn 0 -kto 0 -ktp 0 -kts 0 -ttd 0 -ttn 0 -tto 0 -ttp 0 -tts 0"
+		;;
+	h)
+		usage
+		exit 1
+		;;
+	esac
+done
+
+# Check parameters.
+
+if [ "x${CONNECTIONS}" = "x" ]; then
+	echo "specify the number of database connections using -c #"
+	exit 1
+fi
+
+if [ "x${WAREHOUSES}" = "x" ]; then
+	echo "specify the number of warehouses using -w #"
+	exit 1
+fi
+
+if [ "x${DURATION}" = "x" ]; then
+	echo "specify the duration of the test in seconds using -d #"
+	exit 1
+fi
+
+if [ "x${WMIN}" = "x" ]; then
+	echo "specify the number of the first warehouse using -a #"
+	exit 1
+fi
+
+if [ "x${WMAX}" = "x" ]; then
+	echo "specify the number of the last warehouse using -b #"
+	exit 1
+fi
+
+if [ ${WMAX} -lt ${WMIN} ]; then
+	echo "the number of the last warehouse ${WMAX} must be greater than or equal to"
+	echo "the number of the first warehouse ${WMIN}"
+	exit 1
+fi
+
+if [ ${WAREHOUSES} -lt ${WMAX} ]; then
+	echo "the number of the last warehouse ${WMAX} must be less than or equal to"
+	echo "the number of warehouses ${WAREHOUSES}"
+	exit 1
+fi
+
+if [ "x${OUTPUT_DIR}" = "x" ]; then
+	echo "specify the location for results, directory must not exist, using -o <path>"
+	exit 1
+fi
+
+if [ -d "${OUTPUT_DIR}" ]; then
+	echo "directory '${OUTPUT_DIR}' exists, stopping to prevent possible"
+	echo "clobbering of data, please specify another -o location"
+	exit 1
+fi
+
+if [ "x${DB_NAME}" = "x" ]; then
+	echo "specify database name using -D #"
+	exit 1
+fi
+
+if [ ${THREADS_PER_WAREHOUSE} -lt 1 ] || [ ${THREADS_PER_WAREHOUSE} -gt 1000 ];
+then
+	usage "-t value should be in range [1..1000]. Please specify correct value"
+	exit 1
+fi
+
+#
+# Redisplay the test parameters.
+#
+echo "DBT-2 test for ${DBMS} started..."
+echo ""
+echo "DATABASE SYSTEM: ${DB_HOST}"
+echo "DATABASE NAME: ${DB_NAME}"
+
+#
+# Build up the client command line arguments.
+#
+
+CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -h ${DB_HOST}"
+CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -d ${DB_NAME}"
+
+if [ -n "${DB_USER}" ]; then
+	echo "DATABASE USER: ${DB_USER}"
+	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -u ${DB_USER}"
+fi
+
+if [ -n "${DB_PASS}" ]; then
+	echo "DATABASE PASSWORD: *******"
+	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -a ${DB_PASS}"
+fi
+
+if [ -n "${DB_SOCKET}" ]; then
+	echo "DATABASE SOCKET: ${DB_SOCKET}"
+	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -t ${DB_SOCKET}"
+fi
+
+if [ -n "${DB_PORT}" ]; then
+	echo "DATABASE PORT: ${DB_PORT}"
+	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -l ${DB_PORT}"
+fi
+
+CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -f -c ${CONNECTIONS} -s ${SLEEPY}"
+
+WNUM=`expr ${WMAX} - ${WMIN} + 1`
+THREADS=`expr ${WNUM} \* ${THREADS_PER_WAREHOUSE}`
+echo "DATABASE CONNECTIONS: ${CONNECTIONS}"
+echo "TERMINAL THREADS: ${THREADS}"
+echo "TERMINALS PER WAREHOUSE: ${THREADS_PER_WAREHOUSE}"
+echo "WAREHOUSES PER THREAD/CLIENT PAIR: ${WNUM}"
+echo "SCALE FACTOR (WAREHOUSES): ${WAREHOUSES}"
+echo "DURATION OF TEST (in sec): ${DURATION}"
+echo "1 client stared every ${SLEEPY} millisecond(s)"
+echo ""
+
+# starting client
+echo "Stage 1. Starting up client..."
+
+CLIENT_OUTPUT_DIR=${OUTPUT_DIR}/`hostname`/client
+mkdir -p ${CLIENT_OUTPUT_DIR}
+
+${bin_dir}/dbt2-client ${CLIENT_COMMAND_ARGS} -p ${CLIENT_PORT} > \
+	${CLIENT_OUTPUT_DIR}/client.out 2>&1 || exit 1 &
+
+SLEEPYTIME=`expr ${WNUM} \* ${SLEEPY}`
+SLEEPYTIME=`expr ${SLEEPYTIME} / 1000`
+SLEEPYTIME=`expr ${SLEEPYTIME} + 1`
+
+sleep ${SLEEPYTIME}
+
+# starting driver
+echo ''
+echo "Stage 2. Starting up driver..."
+echo "${SLEEPY} threads started per millisecond"
+
+DRIVER_OUTPUT_DIR=${OUTPUT_DIR}/`hostname`/driver
+mkdir -p ${DRIVER_OUTPUT_DIR}
+
+DRIVER_COMMAND_ARGS="-d ${CLIENT_HOST} -p ${CLIENT_PORT} -l ${DURATION} \
+-wmin ${WMIN} -wmax ${WMAX} -w ${WAREHOUSES} -sleep ${SLEEPY} \
+-outdir ${DRIVER_OUTPUT_DIR} -tpw ${THREADS_PER_WAREHOUSE} ${NO_THINK}"
+
+${bin_dir}/dbt2-driver ${DRIVER_COMMAND_ARGS} -p ${CLIENT_PORT} > \
+	${DRIVER_OUTPUT_DIR}/driver.out 2>&1 
+
+echo ''
+echo "Stage 3. Processing of results..."
+
+# Client doesn't go away by itself like the driver does, so kill it.
+echo "Killing client..."
+killall dbt2-client 2>/dev/null
+
+# Run some post processing analysese.
+MIXAGG="${OUTPUT_DIR}/mix.log"
+REPORT_FILE="${OUTPUT_DIR}/report.txt"
+
+# Aggregate all the mix.log file from all possible driver processes into a
+# single location to be analyzed.
+
+find ${DRIVER_OUTPUT_DIR} -name mix.log | xargs cat | \
+		sort -t ',' -k 1 > ${MIXAGG}
+${bin_dir}/dbt2-post-process ${MIXAGG} > ${REPORT_FILE}
+
+cat ${REPORT_FILE}

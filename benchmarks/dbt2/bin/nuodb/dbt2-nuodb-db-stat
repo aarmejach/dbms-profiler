@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [ -z ${DBT2DBNAME} ]; then
+	echo "DBT2DBNAME not defined."
+	exit 1
+fi
+
+while getopts "l:i:o:s:" opt; do
+	case $opt in
+	i)
+		ITERATIONS=$OPTARG
+		;;
+	l)
+		PORT=${OPTARG}
+		;;
+	o)
+		OUTPUT_DIR=$OPTARG
+		;;
+	s)
+		SAMPLE_LENGTH=$OPTARG
+		;;
+	esac
+done
+
+# tbd

@@ -1,5 +1,5 @@
 DATABASES="pgsql monetdb"
-BENCHMARKS="tpch tpcc"
+BENCHMARKS="tpch dbt2"
 PREPARE=false
 TOMOGRAPH=false
 RESULTSDIR_APPEND=""
