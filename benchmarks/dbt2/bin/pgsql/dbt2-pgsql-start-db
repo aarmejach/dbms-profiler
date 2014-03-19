@@ -36,9 +36,11 @@ fi
 sleep 1
 
 if [ "x${PARAMETERS}" = "x" ]; then
-	pg_ctl -D ${DBT2PGDATA} -l ${OUTDIR}/${LOGFILE} start
+	#pg_ctl -D ${DBT2PGDATA} -l ${OUTDIR}/${LOGFILE} start
+	postgres -D ${DBT2PGDATA} -r ${OUTDIR}/${LOGFILE} -p $PORT &
 else
-	pg_ctl -D ${DBT2PGDATA} -o "${PARAMETERS}" -l ${OUTDIR}/${LOGFILE} start
+	#pg_ctl -D ${DBT2PGDATA} -o "${PARAMETERS}" -l ${OUTDIR}/${LOGFILE} start
+	postgres -D ${DBT2PGDATA} -o "${PARAMETERS}" -r ${OUTDIR}/${LOGFILE} -p $PORT &
 fi
 
 sleep 10
