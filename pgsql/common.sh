@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+# Export postgres path
+export PATH=$PATH:$PGBINDIR
+
 # Install teardown() function to kill any lingering jobs
 teardown() {
   echo "Cleaning up before exiting"

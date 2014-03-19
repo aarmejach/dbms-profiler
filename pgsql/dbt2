@@ -1,7 +1,7 @@
-# Configuration file for the TPC-H benchmark on pgswl
-SCALE=1
-TPCHTMP=/AXLE/$USER/dbt2_tmp
-DATADIR=/AXLE/$USER/pgdata${SCALE}GB-dbt2
+# Configuration file for the DBT2 benchmark on pgsql
+SCALE=10
+DBT2TMP=/AXLE/$USER/dbt2_tmp
+DATADIR=/AXLE/$USER/pgdata${SCALE}w-dbt2
 PORT=5442
 DB_NAME="dbt2"
 CORES=`grep -c ^processor /proc/cpuinfo`
@@ -9,4 +9,13 @@ PGUSER="nobody"
 PGBINDIR=$HOME/bin/postgres-bs8/bin
 RESULTS=$BASEDIR/results$RESULTSDIR_APPEND/$DATABASE/$bench/$SCALE
 QUERIESDIR=$BASEDIR/queries/$DATABASE/$bench/$SCALE
-BENCHDIR=$BASEDIR/benchmarks/osdldbt-dbt2
+BENCHDIR=$BASEDIR/benchmarks/dbt2
+USE_PGPOOL=0
+CLIENTS=32
+DURATION=60
+
+export DBT2PGDATA=$DATADIR
+export PORT
+export DBT2DBNAME=$DB_NAME
+export USE_PGPOOL
+export PATH=$PATH:$BENCHDIR/bin:$BENCHDIR/bin/pgsql

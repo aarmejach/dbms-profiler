@@ -1,15 +1,1 @@
 Profiler for PostgreSQL and MonetDB
-
-Compile dbt2:
-cmake -DDBMS=<drizzle|mysql|pgsql|sapdb>
-make
-
-Needed server configuration for dbt2:
-
-- Edit '/etc/sysctl.conf':
-    fs.file-max = 40000
-    kernel.threads-max = 32768
-    kernel.shmmax = 41943040
-
- - Running DBT-2
-    The scripts require R and the python rpy2 packages to be installed.
