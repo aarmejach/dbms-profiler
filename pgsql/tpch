@@ -1,13 +1,34 @@
-# Configuration file for the TPC-H benchmark on pgswl
-SCALE=1
-TPCHTMP=/AXLE/$USER/tpch_tmp
-DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
+# Configuration file for the TPC-H benchmark on pgsql
+
+MEMORY_MB=`vmstat -s -S M | grep "total memory" | tr -d ' ' | cut -d"M" -f1`
+MEMORY_10PRCT=$(( $MEMORY_MB / 10 ))
+MEMORY_75PRCT=$(( $MEMORY_MB * 3 / 4 ))
+
+# Data folders
+#TPCHTMP=/AXLE/$USER/tmp_$BENCHMARK
+#DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
+TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
+DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
+
+# Postgres general
 PORT=5442
-DB_NAME="tpch"
 CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
-PGBINDIR=$HOME/bin/postgres-bs8/bin
-RESULTS=$BASEDIR/results$RESULTSDIR_APPEND/$DATABASE/$bench/$SCALE
-QUERIESDIR=$BASEDIR/queries/$DATABASE/$bench/$SCALE
-QUERIES=$(seq 1 22)
+PGBINDIR=$ZSIMPATH/benchmarks/postgres/local/bin
+DB_NAME=$BENCHMARK
+
+# Postgres configuration
+CHECKPOINT_TIMEOUT=600s
+WORK_MEM=$(( $MEMORY_10PRCT > 16384 ? 16384 : $(( $MEMORY_10PRCT < 2048 ? 2048 : $MEMORY_10PRCT )) ))MB
+EFFECTIVE_CACHE=${MEMORY_75PRCT}MB
+STATISTICS_TARGET=5000
+MAINTAINANCE_MEM=32MB
+
+# Benchmark configuration
 BENCHDIR=$BASEDIR/benchmarks/dbgen
+RESULTS=$RESULTSDIR$RESULTSDIR_APPEND/$DATABASE/$BENCHMARK/$SCALE
+QUERIESDIR=$BASEDIR/queries/$DATABASE/$BENCHMARK/$SCALE
+QUERIES=$(seq 2 22)
+
+# simulator
+SIMCONFIG=$ZSIMPATH/tests/sandy-complete-template.cfg

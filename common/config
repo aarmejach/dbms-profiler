@@ -1,6 +1,9 @@
 DATABASES="pgsql monetdb"
-BENCHMARKS="tpch dbt2"
+BENCHMARKS="tpch dbt2 dbt3"
 PREPARE=false
 TOMOGRAPH=false
 RESULTSDIR_APPEND=""
 STAT=true
+SIMULATOR=false
+SCALE=1
+RESULTSDIR=$ZSIMPATH/results

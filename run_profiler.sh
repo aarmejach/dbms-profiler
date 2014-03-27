@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
@@ -31,12 +31,19 @@ do
         -t|--tomograph) # this just works with monetdb
             TOMOGRAPH=true
             ;;
-        -r|--results) # append a "name" to results dir
+        -a|--append) # append a "name" to results dir
             shift
             RESULTSDIR_APPEND="-$1"
             ;;
-        -s|--stat) # use perf stat instead or record
+        -r|--record) # use perf record instead of stat
             STAT=false
+            ;;
+        -sim|--simulator) # execute in the simulator
+            SIMULATOR=true
+            ;;
+        -s|--scale) # scale in GB
+            shift
+            SCALE=$1
             ;;
         *)
             echo "Unrecognized option: $1"
@@ -44,6 +51,12 @@ do
     esac
     shift
 done
+
+if [ "$SIMULATOR" = true ]; then
+    RESULTSDIR=$RESULTSDIR/sim
+else
+    RESULTSDIR=$RESULTSDIR/real
+fi
 
 # Argument testing
 if [ "$RESULTSDIR_APPEND" = "" ]; then
@@ -60,13 +73,13 @@ for DATABASE in $DATABASES; do
     echo "Running on $DATABASE"
     cd $BASEDIR
 
-    for bench in $BENCHMARKS; do
-        echo "Running benchmark: $bench"
+    for BENCHMARK in $BENCHMARKS; do
+        echo "Running benchmark: $BENCHMARK"
 
         # The DB folder must exist
         if [ -d "$DATABASE" ]; then
-            echo "Load configuration for $DATABASE and $bench"
-            source "$BASEDIR/$DATABASE/$bench"
+            echo "Load configuration for $DATABASE and $BENCHMARK"
+            source "$BASEDIR/$DATABASE/$BENCHMARK"
         else
             show_help
             exit 0
@@ -77,7 +90,7 @@ for DATABASE in $DATABASES; do
             echo "DB folder exists, skip creation"
         else
             echo "DB does not exist, creating data dir in $DATADIR"
-            source "$BASEDIR/$DATABASE/create_database_$bench.sh"
+            source "$BASEDIR/$DATABASE/create_database_$BENCHMARK.sh"
             echo "done creating data dir in $DATADIR"
         fi
         if [ "$PREPARE" = true ]; then
@@ -86,12 +99,12 @@ for DATABASE in $DATABASES; do
         fi
 
         # Will run the benchmark
-        echo "Get ready to run benchmark $bench: drop caches."
+        echo "Get ready to run benchmark $BENCHMARK: drop caches."
         sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
         sleep 5
 
-        echo "Running benchmark $bench for $DATABASE"
-        source "$BASEDIR/$DATABASE/run_$bench.sh"
+        echo "Running benchmark $BENCHMARK for $DATABASE"
+        source "$BASEDIR/$DATABASE/run_$BENCHMARK.sh"
     done
 
 done

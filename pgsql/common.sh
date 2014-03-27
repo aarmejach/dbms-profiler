@@ -1,12 +1,9 @@
 #!/bin/bash -e
 
-# Export postgres path
-export PATH=$PATH:$PGBINDIR
-
 # Install teardown() function to kill any lingering jobs
 teardown() {
   echo "Cleaning up before exiting"
-  sudo -u $PGUSER $PGBINDIR/pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 1
+  $PGBINDIR/pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 1
   JOBS=$(jobs -p)
   test -z "$JOBS" || { kill $JOBS && sleep 2; }
   JOBS=$(jobs -p)
@@ -53,8 +50,8 @@ then
 fi
 
 # Check if a Postgres server is running in the same directory
-if sudo -u $PGUSER $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; then
+if $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; then
   echo "A Postgres server is already running in the selected directory. Exiting."
-  sudo -u $PGUSER $PGBINDIR/pg_ctl status -D $DATADIR
+  $PGBINDIR/pg_ctl status -D $DATADIR
   exit -2
 fi

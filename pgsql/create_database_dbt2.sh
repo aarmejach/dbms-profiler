@@ -18,9 +18,10 @@ cd $BASEDIR
 t=$(timer)
 
 TIME=`date`
+echo $PATH
 
 # Create db and populate
-sudo -u $PGUSER dbt2-pgsql-build-db -w $SCALE -l $PORT
+sudo -u $PGUSER env PATH=$PATH dbt2-pgsql-build-db -w $SCALE -l $PORT
 
 # Configuration for query execution
 query_configuration="
@@ -32,13 +33,13 @@ maintenance_work_mem = 32MB
 "
 
 echo "$query_configuration" | sudo -u $PGUSER tee -a $DATADIR/postgresql.conf
-sudo -u $PGUSER pg_ctl reload -D $DATADIR
+sudo -u $PGUSER env PATH=$PATH pg_ctl reload -D $DATADIR
 
 # Disable transparent huge pages
 echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
 
 echo "Stop the postgres server"
-sudo -u $PGUSER pg_ctl stop -D $DATADIR
+sudo -u $PGUSER env PATH=$PATH pg_ctl stop -D $DATADIR
 
 sudo -u $PGUSER cp -a $DATADIR $DATADIR-template
 

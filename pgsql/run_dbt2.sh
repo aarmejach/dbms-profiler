@@ -5,11 +5,11 @@
 source "$BASEDIR/$DATABASE/common.sh"
 
 # Start the database
-sudo -u $PGUSER dbt2-pgsql-start-db
+sudo -u $PGUSER env PATH=$PATH dbt2-pgsql-start-db
 
 if [ "$STAT" = false ]; then
     # Execute with perf record
-    sudo -u $PGUSER dbt2-run-workload -a $DATABASE -d $DURATION\
+    sudo -u $PGUSER env PATH=$PATH dbt2-run-workload -a $DATABASE -d $DURATION\
             -w $SCALE -o $RESULTS -c $CLIENTS -l $PORT -n\
             -u $DB_NAME -perfrecord
 
@@ -24,14 +24,14 @@ else
         sudo -u $PGUSER rm -r $DATADIR
         sudo -u $PGUSER cp -a $DATADIR-template $DATADIR
         
-        sudo -u $PGUSER dbt2-run-workload -a $DATABASE -d $DURATION\
+        sudo -u $PGUSER env PATH=$PATH dbt2-run-workload -a $DATABASE -d $DURATION\
             -w $SCALE -o $RESULTS/$counter -c $CLIENTS -l $PORT -n\
             -u $DB_NAME -perfstat $counter
     done
 fi
 
 echo "Stop the postgres server"
-sudo -u $PGUSER dbt2-psql-stop-db
+sudo -u $PGUSER env PATH=$PATH dbt2-psql-stop-db
 
 # Generate callgraphs
 if [ "$STAT" = false ]; then
