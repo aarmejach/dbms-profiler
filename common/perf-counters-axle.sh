@@ -4,7 +4,7 @@
 file=$BASEDIR/common/perf-counters-axle-list
 list=`cat $file | grep -o 'r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]:[a-z]\|r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]'`
 
-merge_level=4
+merge_level=3
 it=1
 array_item=
 array_index=0
