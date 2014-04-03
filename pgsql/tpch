@@ -31,4 +31,5 @@ QUERIESDIR=$BASEDIR/queries/$DATABASE/$BENCHMARK/$SCALE
 QUERIES=$(seq 2 22)
 
 # Simulator
-SIMCONFIG=$ZSIMPATH/tests/sandy-complete-template.cfg
+PGSIMCONFIG=$ZSIMPATH/tests/sandy-postgres-template.cfg
+PGSIMSCRIPT=$BASEDIR/pgsql/run_tpch_sim.sh
