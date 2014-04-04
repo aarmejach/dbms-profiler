@@ -1,0 +1,28 @@
+#!/bin/sh
+
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002 Jenny Zhang & Open Source Development Lab, Inc.
+#
+
+export DBT3_DIR=${HOME}/local/dbt3
+export STAT_ITER=1440
+export STAT_SAMPLE=60
+export PGHOME=@PGSQL_PATH@
+
+export SID=dbt3
+export DBNAME=${SID}
+export PGDATA=${DBT3_DIR}/pgdata
+export DBPORT=5432
+
+export DEFAULT_LOAD_PARAMETERS=""
+export DEFAULT_POWER_PARAMETERS=""
+export DEFAULT_THROUGHPUT_PARAMETERS=""
+
+# Directory with tablespace mount points, if using tablespaces.
+export TSDIR=${DBT3_DIR}
+
+export PATH=${PATH}:${PGHOME}/bin
+
