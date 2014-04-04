@@ -23,7 +23,7 @@ $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q%QNUM%.sql 2> psqlte
 # Additional waiting time
 sleep 5
 
-#Stop server
+# Stop server
 $PGBINDIR/pg_ctl stop -w -D $DATADIR
 
 # Sleep some more to allow sim to cleanup

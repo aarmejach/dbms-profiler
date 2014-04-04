@@ -53,19 +53,19 @@ do
 done
 
 if [ "$SIMULATOR" = true ]; then
-    RESULTSDIR=$RESULTSDIR/sim
+    RESULTSDIR=$RESULTSDIR/zsim
 else
-    RESULTSDIR=$RESULTSDIR/real
+    RESULTSDIR=$RESULTSDIR/perf
 fi
 
 # Argument testing
-if [ "$RESULTSDIR_APPEND" = "" ]; then
-    if [ "$STAT" = "true" ]; then
-        RESULTSDIR_APPEND="-perf"
-    else
-        RESULTSDIR_APPEND="-time"
-    fi
-fi
+#if [ "$RESULTSDIR_APPEND" = "" ]; then
+    #if [ "$STAT" = "true" ]; then
+        #RESULTSDIR_APPEND="-perf"
+    #else
+        #RESULTSDIR_APPEND="-time"
+    #fi
+#fi
 
 echo "Profiler running benchmark/s: $BENCHMARKS, on $DATABASES."
 

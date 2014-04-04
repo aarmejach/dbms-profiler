@@ -10,7 +10,7 @@ do
 
   cgf="q${ii}-callgraph.pdf"
   echo "Creating the call graph: $cgf"
-  perf script | python "$BASEDIR/gprof2dot.py" -f perf | dot -Tpdf -o $cgf &
+  perf script | python "$BASEDIR/scripts/gprof2dot.py" -f perf | dot -Tpdf -o $cgf &
 
   cd - >/dev/null
 done

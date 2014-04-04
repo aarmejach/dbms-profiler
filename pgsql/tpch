@@ -14,7 +14,7 @@ DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
 PORT=5442
 CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
-PGBINDIR=$ZSIMPATH/benchmarks/postgres/local/bin
+PGBINDIR=$PGPATH/local/bin
 DB_NAME=$BENCHMARK
 
 # Postgres configuration
@@ -27,7 +27,7 @@ MAINTAINANCE_MEM=32MB
 # Benchmark configuration
 BENCHDIR=$BASEDIR/benchmarks/dbgen
 RESULTS=$RESULTSDIR$RESULTSDIR_APPEND/$DATABASE/$BENCHMARK/$SCALE
-QUERIESDIR=$BASEDIR/queries/$DATABASE/$BENCHMARK/$SCALE
+QUERIESDIR=$BASEDIR/data/queries/$DATABASE/$BENCHMARK/$SCALE
 QUERIES=$(seq 2 22)
 
 # Simulator

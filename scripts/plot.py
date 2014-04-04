@@ -115,17 +115,17 @@ def _main():
   add_counter(counters, results, 'total_insts', 'Total insts', '$00c0:k + $00c0:u')
   add_counter(counters, results, 'prcnt_kernel', '% Kernel cycles', '( $003c:k / $total_cycles ) * 100')
   add_counter(counters, results, 'ipc', 'IPC', '$total_insts / $total_cycles')
-  add_counter(counters, results, 'cpi', 'CPI', '1 / $ipc')
-  add_counter(counters, results, 'prcnt_misspred_branches', '% Misspredicted branches', '( $00c5 / $00c4 ) * 100')
-  add_counter(counters, results, 'prcnt_misspred_cond_branches', '% Misspredicted conditional branches', '( $01c5 / $01c4 ) * 100')
+  #add_counter(counters, results, 'cpi', 'CPI', '1 / $ipc')
+  #add_counter(counters, results, 'prcnt_misspred_branches', '% Misspredicted branches', '( $00c5 / $00c4 ) * 100')
+  #add_counter(counters, results, 'prcnt_misspred_cond_branches', '% Misspredicted conditional branches', '( $01c5 / $01c4 ) * 100')
   #add_counter(counters, results, '', '', '')
 
   # Plot metric of interest
   plot(counters, results, 'prcnt_kernel')
   plot(counters, results, 'ipc')
-  plot(counters, results, 'cpi')
-  plot(counters, results, 'prcnt_misspred_branches')
-  plot(counters, results, 'prcnt_misspred_cond_branches')
+  #plot(counters, results, 'cpi')
+  #plot(counters, results, 'prcnt_misspred_branches')
+  #plot(counters, results, 'prcnt_misspred_cond_branches')
 
 if __name__ == '__main__':
   _main()
