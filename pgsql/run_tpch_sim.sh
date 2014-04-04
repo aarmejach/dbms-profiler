@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Clean up when exiting
-trap 'kill $(jobs -pr)' EXIT SIGINT SIGTERM
+trap 'kill $(jobs -p)' EXIT SIGINT SIGTERM
 
 # zsim execution
 $ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt &
@@ -24,9 +24,9 @@ $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q%QNUM%.sql 2> psqlte
 sleep 5
 
 #Stop server
-$PGBINDIR/pg_ctl stop -D $DATADIR
+$PGBINDIR/pg_ctl stop -w -D $DATADIR
 
 # Sleep some more to allow sim to cleanup
-sleep 5
+sleep 10
 
-exit 0
+#exit 0
