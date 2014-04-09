@@ -1,0 +1,39 @@
+# Configuration file for the DBT3 benchmark on pgsql
+
+MEMORY_MB=`vmstat -s -S M | grep "total memory" | tr -d ' ' | cut -d"M" -f1`
+MEMORY_10PRCT=$(( $MEMORY_MB / 10 ))
+MEMORY_75PRCT=$(( $MEMORY_MB * 3 / 4 ))
+
+# Data folders, assume DB is already created
+#TPCHTMP=/AXLE/$USER/tmp_$BENCHMARK
+#DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
+TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
+DATADIR=$BASEDIR/data/pgdata${SCALE}GB-$BENCHMARK
+
+# Postgres general
+PORT=5442
+CORES=`grep -c ^processor /proc/cpuinfo`
+PGUSER="nobody"
+PGBINDIR=$PGPATH/local/bin
+DB_NAME=$BENCHMARK
+
+# Postgres configuration
+CHECKPOINT_TIMEOUT=600s
+WORK_MEM=$(( $MEMORY_10PRCT > 16384 ? 16384 : $(( $MEMORY_10PRCT < 2048 ? 2048 : $MEMORY_10PRCT )) ))MB
+EFFECTIVE_CACHE=${MEMORY_75PRCT}MB
+STATISTICS_TARGET=5000
+MAINTAINANCE_MEM=32MB
+
+# Benchmark configuration
+DBGENDIR=$BASEDIR/benchmarks/dbgen
+BENCHDIR=$BASEDIR/benchmarks/dbt3
+RESULTS=$RESULTSDIR$RESULTSDIR_APPEND/$DATABASE/$BENCHMARK/$SCALE
+QUERIESDIR=$BASEDIR/data/queries/$DATABASE/$BENCHMARK/$SCALE
+QUERIES=$(seq 2 22)
+NUMSTREAMS=2   #$CORES
+SEED_FILE="seed.txt"
+TAG=1
+
+# Simulator
+PGSIMCONFIG=$ZSIMPATH/tests/sandy-postgres-template.cfg
+PGSIMSCRIPT=$BASEDIR/pgsql/run_tpch_sim.sh

@@ -7,14 +7,14 @@
 # Copyright (C) 2002 Jenny Zhang & Open Source Development Lab, Inc.
 #
 
-export DBT3_DIR=${HOME}/local/dbt3
+export DBT3_DIR=${BASEDIR}/data
 export STAT_ITER=1440
 export STAT_SAMPLE=60
 export PGHOME=@PGSQL_PATH@
 
 export SID=dbt3
 export DBNAME=${SID}
-export PGDATA=${DBT3_DIR}/pgdata
+export PGDATA=${DATADIR}
 export DBPORT=5432
 
 export DEFAULT_LOAD_PARAMETERS=""

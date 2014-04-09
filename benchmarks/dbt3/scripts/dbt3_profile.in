@@ -13,7 +13,7 @@ export DBT3_HOME="@TOPDIR@"
 export DATABASE=@DATABASE_TO_USE@
 
 export DSS_QUERY="@TOPDIR@/queries/@DATABASE_TO_USE@"
-export DSS_PATH="${HOME}/local/data"
+export DSS_PATH="${TPCHTMP}"
 export DSS_CONFIG="@TOPDIR@/src/dbgen"
 export DBT3_PERL_MODULE="@TOPDIR@/perlmodules"
 
