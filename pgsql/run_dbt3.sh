@@ -57,6 +57,11 @@ do
     DSS_QUERY=queries/$DATABASE ./qgen -c -r $seed -p $i -s $SCALE -l $param_file > $query_file
     cd $RESULTS
 
+    # Ugly hack to remove Q1 from query_file
+    line=`grep "(Q1)" $query_file -n | cut -f1 -d:`
+    let "lineend=$line+26"
+    sed -i "${line},${lineend}d" $query_file
+
     # modify $query_file so that the commands are in one line
     #${PARSE_QUERY} $query_file $tmp_query_file T $perf_run_num $stream_num
 
@@ -74,11 +79,13 @@ do
             #let "i=$i+1"
     #done
 
-    # Warmup with first stream
-    echo "Warmup using stream $i"
-    /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        --output=warmup$i.exectime $PGBINDIR/psql -h /tmp\
-        -p $PORT -d $DB_NAME -f $query_file  2> warmup$i.stderr > warmup$i.stdout &
+    if [ "$SIMULATOR" = false ]; then
+        # Warmup run each stream once
+        echo "Warmup using stream $i"
+        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+            --output=warmup$i.exectime $PGBINDIR/psql -h /tmp\
+            -p $PORT -d $DB_NAME -f $query_file  2> warmup$i.stderr > warmup$i.stdout &
+    fi
 
     let "i=$i+1"
 done
@@ -90,49 +97,59 @@ for p in $(jobs -p); do
       wait $p
   fi
 done
-echo "Warmup done."
+echo "Warmup done and stream creation done."
 
-sleep 10
+sleep 3
 
-# Run the streams for each counter
-source "$BASEDIR/common/perf-counters-axle.sh"
-for counter in "${array[@]}"; do
+if [ "$SIMULATOR" = true ]; then
+        cp $PGSIMCONFIG in.cfg
+        sed -i "s#PGBINDIR#$PGBINDIR#g" in.cfg
+        sed -i "s#PORT#$PORT#g" in.cfg
+        sed -i "s#DATADIR#$DATADIR#g" in.cfg
+        cp $PGSIMSCRIPT run.sh
+        sed -i "s/%NUMSTREAMS%/$NUMSTREAMS/g" run.sh
+        source ./run.sh
+else
+    # Run the streams for each counter
+    source "$BASEDIR/common/perf-counters-axle.sh"
+    for counter in "${array[@]}"; do
 
-    i=1
-    while [ $i -le $NUMSTREAMS ]; do
-        # run the queries
-        echo "`date`: start throughput queries for stream $i for counter $counter"
-        t=$(timer)
+        i=1
+        while [ $i -le $NUMSTREAMS ]; do
+            # run the queries
+            echo "`date`: start throughput queries for stream $i for counter $counter"
+            t=$(timer)
 
-        query_file="$RUNDIR/throughput_query$i"
-        # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
-        if [ $i -eq $NUMSTREAMS ]; then
-            # Last stream, attach perf to postgres pid
-            LC_NUMERIC=C perf stat --append -o perf-stats.csv -e $counter -p $PGPID -x "," --\
+            query_file="$RUNDIR/throughput_query$i"
+            # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
+            if [ $i -eq $NUMSTREAMS ]; then
+                # Last stream, attach perf to postgres pid
+                LC_NUMERIC=C perf stat --append -o perf-stats.csv -e $counter -p $PGPID -x "," --\
+                    $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
+                    2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
+            else
                 $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
-        else
-            $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
-        fi
+                    2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
+            fi
 
-        let "i=$i+1"
+            let "i=$i+1"
+        done
+
+        # Wait for all streams to finish.
+        for p in $(jobs -p); do
+          if [ $p != $PGPID ]; then
+              wait $p
+          fi
+        done
+
+        e_time=`$GTIME`
+        echo "`date`: end queries for counter $counter"
+        printf 'Elapsed time: %s\n' $(timer $t)
+
+        sleep 2
+
     done
-
-    # Wait for all streams to finish.
-    for p in $(jobs -p); do
-      if [ $p != $PGPID ]; then
-          wait $p
-      fi
-    done
-
-    e_time=`$GTIME`
-    echo "`date`: end queries for counter $counter"
-    printf 'Elapsed time: %s\n' $(timer $t)
-
-    sleep 2
-
-done
+fi
 
 if [ "$SIMULATOR" = false ]; then
     $PGBINDIR/pg_ctl stop -D $DATADIR

@@ -36,4 +36,4 @@ TAG=1
 
 # Simulator
 PGSIMCONFIG=$ZSIMPATH/tests/sandy-postgres-template.cfg
-PGSIMSCRIPT=$BASEDIR/pgsql/run_tpch_sim.sh
+PGSIMSCRIPT=$BASEDIR/pgsql/run_dbt3_sim.sh
