@@ -124,9 +124,9 @@ else
             # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
             if [ $i -eq $NUMSTREAMS ]; then
                 # Last stream, attach perf to postgres pid
-                LC_NUMERIC=C perf stat --append -o perf-stats.csv -e $counter -p $PGPID -x "," --\
+                LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
                     $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                    2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
+                    2>> perf-stats.csv > stdout_stream${i}_$counter.txt &
             else
                 $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
                     2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &

@@ -1,13 +1,23 @@
-#!/bin/bash
+#!/bin/bash -e
 
 BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
 
-USER=adria
+USER=aarmejac
 SERVER=axle.bsc.es
-SERVER_HOME=/home/adria
+SERVER_HOME=/home/Computational/aarmejac
 SERVER_DIR=$USER@$SERVER:$SERVER_HOME
 
-rsync -aP --delete --exclude 'results*' --exclude 'figures' --exclude '.hg' --exclude 'queries' $BASEDIR $SERVER_DIR/
+#dbms-profiler
+rsync -aP --delete --exclude 'results*' --exclude 'data' --exclude '.hg' $BASEDIR $SERVER_DIR/
 
-#ssh $SERVER $SERVER_HOME/script.sh
+#postgres
+rsync -aP --delete --exclude 'build' --exclude '.git' $PGPATH $SERVER_DIR/
+
+#zsim
+rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/.git' --exclude 'nvmain/.hg' $ZSIMPATH $SERVER_DIR/
+
+#install
+scp axle-install.sh $SERVER_DIR
+
+ssh $USER@$SERVER $SERVER_HOME/axle-install.sh

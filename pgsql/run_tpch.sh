@@ -73,9 +73,9 @@ do
             for counter in "${array[@]}"; do
                 echo "Running query $i for counters $counter."
                 # Execute queries using perf stat, repeat 5
-                LC_NUMERIC=C perf stat --append -o perf-stats.csv -r 5 -e $counter -p $PGPID -x "," --\
+                LC_NUMERIC=C perf stat -r 5 -e $counter -p $PGPID -x "," --\
                     $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
-                    2> stderr_$counter.txt > stdout_$counter.txt
+                    2>> perf-stats.csv > stdout_$counter.txt
             done
         fi
     fi

@@ -5,16 +5,16 @@ MEMORY_10PRCT=$(( $MEMORY_MB / 10 ))
 MEMORY_75PRCT=$(( $MEMORY_MB * 3 / 4 ))
 
 # Data folders
-#TPCHTMP=/AXLE/$USER/tmp_$BENCHMARK
-#DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
-TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
-DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
+TPCHTMP=/AXLE/$USER/tmp_$BENCHMARK
+DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
+#TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
+#DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
 
 # Postgres general
 PORT=5442
 CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
-PGBINDIR=$PGPATH/local/bin
+PGBINDIR=$PGPATH/build/bin
 DB_NAME=$BENCHMARK
 
 # Postgres configuration

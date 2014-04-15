@@ -149,7 +149,7 @@ for p in $(jobs -p); do
 done
 
 # Disable transparent huge pages
-echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
+#echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
 
 # Always analyze after bulk-loading; when hacking Postgres, typically Postgres
 # is run with autovacuum turned off.

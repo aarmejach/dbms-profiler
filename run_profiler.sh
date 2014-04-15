@@ -100,7 +100,7 @@ for DATABASE in $DATABASES; do
 
         # Will run the benchmark
         echo "Get ready to run benchmark $BENCHMARK: drop caches."
-        sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
+        sudo dropcaches.sh
         sleep 5
 
         echo "Running benchmark $BENCHMARK for $DATABASE"
