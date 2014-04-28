@@ -111,25 +111,24 @@ if [ "$SIMULATOR" = true ]; then
         source ./run.sh
 else
     # Run the streams for each counter
-    source "$BASEDIR/common/perf-counters-axle.sh"
-    for counter in "${array[@]}"; do
 
+    if [ "$STAT" = false ]; then
+        # Unsing perf record
         i=1
         while [ $i -le $NUMSTREAMS ]; do
             # run the queries
             echo "`date`: start throughput queries for stream $i for counter $counter"
-            t=$(timer)
 
             query_file="$RUNDIR/throughput_query$i"
-            # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
             if [ $i -eq $NUMSTREAMS ]; then
                 # Last stream, attach perf to postgres pid
-                LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
-                    $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                    2>> perf-stats.csv > stdout_stream${i}_$counter.txt &
+                /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+                    --output=exectime.txt perf record -p $PGPID -s -g -m 512 --\
+                    $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
+                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt
             else
                 $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                    2> stderr_stream${i}_$counter.txt > stdout_stream${i}_$counter.txt &
+                    2> stderr_record_stream${i}.txt > stdout_record_stream${i} &
             fi
 
             let "i=$i+1"
@@ -141,19 +140,52 @@ else
               wait $p
           fi
         done
+    else
+        # Using perf stat
+        source "$BASEDIR/common/perf-counters-axle.sh"
+        for counter in "${array[@]}"; do
 
-        e_time=`$GTIME`
-        echo "`date`: end queries for counter $counter"
-        printf 'Elapsed time: %s\n' $(timer $t)
+            i=1
+            while [ $i -le $NUMSTREAMS ]; do
+                # run the queries
+                echo "`date`: start throughput queries for stream $i for counter $counter"
+                t=$(timer)
 
-        sleep 2
+                query_file="$RUNDIR/throughput_query$i"
+                # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
+                if [ $i -eq $NUMSTREAMS ]; then
+                    # Last stream, attach perf to postgres pid
+                    LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
+                        $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
+                        2>> perf-stats.csv > stdout_stat_stream${i}_$counter.txt &
+                else
+                    $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
+                        2> stderr_stat_stream${i}_$counter.txt > stdout_stat_stream${i}_$counter.txt &
+                fi
 
-    done
+                let "i=$i+1"
+            done
+
+            # Wait for all streams to finish.
+            for p in $(jobs -p); do
+              if [ $p != $PGPID ]; then
+                  wait $p
+              fi
+            done
+
+            e_time=`$GTIME`
+            echo "`date`: end queries for counter $counter"
+            printf 'Elapsed time: %s\n' $(timer $t)
+
+            sleep 2
+
+        done
+    fi
 fi
 
 if [ "$SIMULATOR" = false ]; then
     $PGBINDIR/pg_ctl stop -D $DATADIR
-    #if [ "$STAT" = false ]; then
-        #source "$BASEDIR/common/callgraph.sh"
-    #fi
+    if [ "$STAT" = false ]; then
+        source "$BASEDIR/common/callgraph.sh"
+    fi
 fi
