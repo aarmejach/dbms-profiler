@@ -100,7 +100,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BENCHDIR/dss.ri"
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$BENCHDIR/dss.ri" &
 
 # Remove tmp folder
 cd "$BASEDIR"
@@ -177,7 +177,9 @@ else
         DSS_QUERY=queries/$DATABASE ./qgen -d -s $SCALE $i > $QUERIESDIR/q$ii.sql
         cat $QUERIESDIR/q$ii.sql >> $QUERIESDIR/qall.sql
         sed 's/^select/explain select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.explain.sql
+        cat $QUERIESDIR/q$ii.explain.sql >> $QUERIESDIR/qall.explain.sql
         sed 's/^select/explain analyze select/' $QUERIESDIR/q$ii.sql > $QUERIESDIR/q$ii.analyze.sql
+        cat $QUERIESDIR/q$ii.analyze.sql >> $QUERIESDIR/qall.analyze.sql
     done
 fi
 

@@ -107,7 +107,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$DBGENDIR/dss.ri"
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$DBGENDIR/dss.ri" &
 
 # Remove tmp folder
 cd "$BASEDIR"
