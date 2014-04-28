@@ -9,7 +9,7 @@ SERVER_HOME=/home/Computational/aarmejac
 SERVER_DIR=$USER@$SERVER:$SERVER_HOME
 
 #dbms-profiler
-rsync -aP --delete --exclude 'results*' --exclude 'data' --exclude '.hg' $BASEDIR $SERVER_DIR/
+rsync -aP --delete --exclude 'results*' --exclude 'data' --exclude 'figures' --exclude '.hg' $BASEDIR $SERVER_DIR/
 
 #postgres
 rsync -aP --delete --exclude 'build' --exclude '.git' $PGPATH $SERVER_DIR/
