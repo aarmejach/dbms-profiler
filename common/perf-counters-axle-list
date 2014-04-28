@@ -2,5 +2,13 @@
 #r00C0:k C0H 00H Number of instructions at retirement. kernel-level
 #r003C:u 3CH 00H Number of thread cycles while the thread is not in a halt state. user-level
 #r003C:k 3CH 00H Number of thread cycles while the thread is not in a halt state. kernel-level
-#r0151 51H 01H Number of lines brought into L1D cache. Replacements. L1D MISSES
-#r0280 80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses. L1I MISSES
+#r0151 51H 01H Number of lines brought into L1D cache. Replacements. L1_DCM / L2 accesses
+#r0280 80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses. L1_ICM
+#r4F2E 2EH 4FH Requests originating from the core that reference a cache line in the LLC. L2_TCM
+#r2024 24H 20H Number of instruction fetches that missed the L2 cache. L2_ICM
+#r412E 2EH 41H Counts each cache miss condition for references LLC. LLC_TCM
+#r00C5 C5H 00H Conditional branch instructions mispredicted
+#r0487 87H 04H Stall cycles due to IQ is full. Cycles with no instr. issue
+#r1024 24H 10H Number of instruction fetches that hit the L2 cache.
+#r2024 24H 20H Number of instruction fetches that missed the L2 cache.
+#r3024 24H 30H Counts all L2 code requests - instr.
