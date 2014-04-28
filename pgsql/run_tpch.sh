@@ -27,7 +27,7 @@ if [ "$SIMULATOR" = false ]; then
     echo "Warmup: run all queries in succession"
     /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
         --output=warmup.exectime $PGBINDIR/psql -h /tmp\
-        -p $PORT -d $DB_NAME < $QUERIESDIR/qall.sql  2> warmup.stderr > warmup.stdout
+        -p $PORT -d $DB_NAME < $QUERIESDIR/qall.analyze.sql  2> warmup.stderr > warmup.stdout
 fi
 
 #bq='\\"'
