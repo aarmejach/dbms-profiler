@@ -1,14 +1,39 @@
+### General
 #r00C0:u C0H 00H Number of instructions at retirement. user-level
 #r00C0:k C0H 00H Number of instructions at retirement. kernel-level
 #r003C:u 3CH 00H Number of thread cycles while the thread is not in a halt state. user-level
 #r003C:k 3CH 00H Number of thread cycles while the thread is not in a halt state. kernel-level
-#r0151 51H 01H Number of lines brought into L1D cache. Replacements. L1_DCM / L2 accesses
-#r0280 80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses. L1_ICM
+#r15301C2:u C2H 01H Micro-ops retired active cycles. c=1:i=0. user-level
+#r15301C2:k C2H 01H Micro-ops retired active cycles. c=1:i=0. kernel-level
+#r1d301C2:u C2H 01H Micro-ops retired stalled cycles. c=1:i=1. user-level
+#r1d301C2:k C2H 01H Micro-ops retired stalled cycles. c=1:i=1. kernel-level
+
+### Caches
+#r0151 51H 01H Number of lines brought into L1D cache. Replacements. L1_DCM / L2 D accesses
+#r0280 80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses. L1_ICM / L2 I accesses
 #r4F2E 2EH 4FH Requests originating from the core that reference a cache line in the LLC. L2_TCM
 #r2024 24H 20H Number of instruction fetches that missed the L2 cache. L2_ICM
+#r1024 24H 10H Number of instruction fetches that hit the L2 cache. L2 I hits
+#r3024 24H 30H Counts all L2 code requests - instr. Sum of the 2 above?
 #r412E 2EH 41H Counts each cache miss condition for references LLC. LLC_TCM
+
+### Branch Prediction
 #r00C5 C5H 00H Conditional branch instructions mispredicted
+
+### Stalls Memory
+#r0408 08H 04H Cycle PMH is busy with a walk for DTLB load misses.
+#r0485 85H 04H Cycle PMH is busy with a walk for ITLB.
+#r02A3 A3H 02H Cycles with pending L1D cache miss loads.
+#r01A3 A3H 01H Cycles with pending L2 miss loads.
+
+### Stalls CPU
+#r0C5B 5BH 0CH Cycles stalled due to free list empty.
+#r0F5B 5BH 0FH Cycles stalled due to control structures full for physical registers.
+#r405B 5BH 40H Cycles Allocator is stalled due Branch Order Buffer is full.
+#r4F5B 5BH 4FH Cycles stalled due to out of order resources full. (ROB?)
 #r0487 87H 04H Stall cycles due to IQ is full. Cycles with no instr. issue
-#r1024 24H 10H Number of instruction fetches that hit the L2 cache.
-#r2024 24H 20H Number of instruction fetches that missed the L2 cache.
-#r3024 24H 30H Counts all L2 code requests - instr.
+#r02A2 A2H 02H Counts the cycles of stall due to lack of load buffers.
+#r04A2 A2H 04H Cycles stalled due to no eligible RS entry available.
+#r08A2 A2H 08H Cycles stalled due to no store buffers available.
+#r10A2 A2H 10H Cycles stalled due to re-order buffer full.
+#r20A2 A2H 20H Cycles stalled due to writing the FPU control word.

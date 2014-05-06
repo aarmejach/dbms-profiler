@@ -15,10 +15,10 @@ def get_counters():
   counters = {}
   for line in open(file_name):
     if ((not line.startswith('#!')) and
-        line.startswith('#')):
+        line.startswith('#r')):
       tmp = line.strip().replace('#', '').split(' ', 3)
-      counter_str = (tmp[0][-4:]).lower().lstrip("0")
-      counters[counter_str] = tmp[3]
+      counter_str = tmp[0].lower().lstrip("r").lstrip("0") # counter number without initial 'r' and '0's
+      counters[counter_str] = tmp[3] # key (counter number) : value (counter description)
   return counters
 
 def _parse_csv_file(file_name):
@@ -29,9 +29,8 @@ def _parse_csv_file(file_name):
       #event_count, event_str, event_prc = line.split(',')
       event_count, event_str = line.split(',')
       assert(event_str.startswith('raw'))
-      event_str = event_str[6:].lower()
-      # handle user and kernel counters
-      if event_str in events:
+      event_str = event_str[6:].lower() # skips 'raw 0x' from the event str
+      if event_str in events: # handle user and kernel counters
           event_str_new = event_str + ":u" #assumes exisintg is user
           events[event_str_new] = events.pop(event_str)
           # change str within Event
