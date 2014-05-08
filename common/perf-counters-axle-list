@@ -18,6 +18,7 @@
 #r412E 2EH 41H Counts each cache miss condition for references LLC. LLC_TCM
 
 ### Branch Prediction
+#r00C4 C4H 00H Branch instructions at retirement.
 #r00C5 C5H 00H Conditional branch instructions mispredicted
 
 ### Stalls Memory
