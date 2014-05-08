@@ -11,7 +11,7 @@ t=$(timer)
 echo "Prepare the benchmark: configure and make"
 cd "$BENCHDIR"
 sh autogen.sh
-./configure --with-postgresql=$PGPATH/local
+./configure --with-postgresql=$PGPATH/build
 make
 
 # Initialize DATADIR
@@ -76,9 +76,10 @@ checkpoint_segments = 300
 checkpoint_timeout = 3600s
 checkpoint_completion_target = 0.9
 checkpoint_timeout = $CHECKPOINT_TIMEOUT
-work_mem = $WORK_MEM                      #2 to 16GB
-effective_cache_size = $EFFECTIVE_CACHE        #3/4 of total RAM (192GB)
-default_statistics_target = $STATISTICS_TARGET    #requires analyze to take effect
+work_mem = $WORK_MEM                            #2 to 16GB
+effective_cache_size = $EFFECTIVE_CACHE         #3/4 of total RAM (192GB)
+shared_buffers = $SHARED_BUFFERS                #1/4 of total RAM (64GB)
+default_statistics_target = $STATISTICS_TARGET  #requires analyze to take effect
 maintenance_work_mem = $MAINTAINANCE_MEM
 "
 echo "$query_configuration" | tee -a $DATADIR/postgresql.conf
@@ -107,7 +108,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$DBGENDIR/dss.ri" &
+#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < "$DBGENDIR/dss.ri" &
 
 # Remove tmp folder
 cd "$BASEDIR"
@@ -117,15 +118,17 @@ rm -rf "$TPCHTMP"
 # WAL logging these create index operations, too.
 echo "Creating 'All' indexes..."
 # Primary key definitions already create indexes
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_r_regionkey ON region (r_regionkey);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_n_nationkey ON nation (n_nationkey);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_p_partkey ON part (p_partkey);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_c_custkey ON customer (c_custkey);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_o_orderkey ON orders (o_orderkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_r_regionkey ON region (r_regionkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_n_nationkey ON nation (n_nationkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_p_partkey ON part (p_partkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_c_custkey ON customer (c_custkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_o_orderkey ON orders (o_orderkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_ps_partkey_suppkey ON partsupp (ps_partkey, ps_suppkey);" &
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_orderkey_linenumber ON lineitem (l_orderkey, l_linenumber);" &
 
 # Pg does not create indexed on foreign keys, create them manually
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_n_regionkey ON nation (n_regionkey);" & # not used
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_n_regionkey ON nation (n_regionkey);" & # not used
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_s_nationkey ON supplier (s_nationkey);" &
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_c_nationkey ON customer (c_nationkey);" &
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_ps_suppkey ON partsupp (ps_suppkey);" &
@@ -141,7 +144,7 @@ $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_suppkey ON line
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_receiptdate ON lineitem (l_receiptdate);" &
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_orderkey_quantity ON lineitem (l_orderkey, l_quantity);" &
 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_o_orderdate ON orders (o_orderdate);" &
-#$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);" & # not used
+$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -c "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);" & # not used
 
 for p in $(jobs -p); do
     if [ $p == $PGPID ]; then continue; fi
