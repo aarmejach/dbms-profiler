@@ -3,7 +3,7 @@
 # read file with perf counters list
 file=$BASEDIR/common/perf-counters-axle-list
 #file=perf-counters-axle-list
-list=`cat $file | grep -o 'r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]:[a-z]\|r[0-9A-F][0-9A-F][0-9A-F][0-9A-F]'`
+list=`cat $file | grep -o 'r[0-9]\+[0-9A-F]*:[uk]\|r[0-9]\+[0-9A-F]*'`
 
 merge_level=3
 it=1

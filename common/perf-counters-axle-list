@@ -5,8 +5,8 @@
 #r003C:k 3CH 00H Number of thread cycles while the thread is not in a halt state. kernel-level
 #r15301C2:u C2H 01H Micro-ops retired active cycles. c=1:i=0. user-level
 #r15301C2:k C2H 01H Micro-ops retired active cycles. c=1:i=0. kernel-level
-#r1d301C2:u C2H 01H Micro-ops retired stalled cycles. c=1:i=1. user-level
-#r1d301C2:k C2H 01H Micro-ops retired stalled cycles. c=1:i=1. kernel-level
+#r1D301C2:u C2H 01H Micro-ops retired stalled cycles. c=1:i=1. user-level
+#r1D301C2:k C2H 01H Micro-ops retired stalled cycles. c=1:i=1. kernel-level
 
 ### Caches
 #r0151 51H 01H Number of lines brought into L1D cache. Replacements. L1_DCM / L2 D accesses
