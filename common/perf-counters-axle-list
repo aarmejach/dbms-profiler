@@ -26,6 +26,8 @@
 #r0485 85H 04H Cycle PMH is busy with a walk for ITLB.
 #r02A3 A3H 02H Cycles with pending L1D cache miss loads.
 #r01A3 A3H 01H Cycles with pending L2 miss loads.
+#r1530860 60H 08H Cycles with offcore outstanding cacheable data read transactions in the superQ.
+#r1530260 60H 02H Cycles with demand code reads transactions in the superQ
 
 ### Stalls CPU
 #r0C5B 5BH 0CH Cycles stalled due to free list empty.
@@ -38,3 +40,7 @@
 #r08A2 A2H 08H Cycles stalled due to no store buffers available.
 #r10A2 A2H 10H Cycles stalled due to re-order buffer full.
 #r20A2 A2H 20H Cycles stalled due to writing the FPU control word.
+
+### Memory level parallelism (MLP)
+#r530160 60H 01H Demand data read transactions in the superQ every cycle.
+#r1530160 60H 01H Cycles with demand data read transactions in the superQ.
