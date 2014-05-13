@@ -8,8 +8,8 @@ mkdir -p $RESULTS
 cd $RESULTS
 
 # Start and Warmup
-echo "Start and Warmup: run all queries in succession"
 if [ "$SIMULATOR" = false ]; then
+    echo "Start pg server"
     $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
     PGPID=$!
     while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
@@ -25,6 +25,8 @@ if [ "$SIMULATOR" = false ]; then
     #/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
         #--output=warmup.exectime $PGBINDIR/psql -h /tmp\
         #-p $PORT -d $DB_NAME < $QUERIESDIR/qall.sql  2> warmup.stderr > warmup.stdout
+else
+    echo "Execute in Zsim:"
 fi
 
 
@@ -57,10 +59,21 @@ do
     DSS_QUERY=queries/$DATABASE ./qgen -c -r $seed -p $i -s $SCALE -l $param_file > $query_file
     cd $RESULTS
 
-    # Ugly hack to remove Q1 from query_file
-    line=`grep "(Q1)" $query_file -n | cut -f1 -d:`
-    let "lineend=$line+26"
-    sed -i "${line},${lineend}d" $query_file
+    # Ugly hack to remove queries from query_file
+    for q in $QUERIESALL; do
+        if [[ $QUERIES =~ (^| )$q($| ) ]]; then
+            echo "keep query $q"
+        else
+            echo "strip query $q"
+            line=`grep "(Q$q)" $query_file -n | cut -f1 -d:`
+            len=`wc -l $DBGENDIR/queries/$DATABASE/$q.sql | cut -f1 -d" "`
+            let "lineend=$line+$len-1"
+            sed -i "${line},${lineend}d" $query_file
+        fi
+    done
+    #line=`grep "(Q1)" $query_file -n | cut -f1 -d:`
+    #let "lineend=$line+26"
+    #sed -i "${line},${lineend}d" $query_file
 
     # modify $query_file so that the commands are in one line
     #${PARSE_QUERY} $query_file $tmp_query_file T $perf_run_num $stream_num
@@ -113,22 +126,24 @@ else
     # Run the streams for each counter
 
     if [ "$STAT" = false ]; then
-        # Unsing perf record
+        # Unsing perf record, no callgraph, just sampling.
         i=1
         while [ $i -le $NUMSTREAMS ]; do
             # run the queries
             echo "`date`: start throughput queries for stream $i for counter $counter"
 
             query_file="$RUNDIR/throughput_query$i"
-            if [ $i -eq $NUMSTREAMS ]; then
-                # Last stream, attach perf to postgres pid
-                /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-                    --output=exectime.txt perf record -p $PGPID -s -g -m 512 --\
+            #if [ $i -eq $NUMSTREAMS ]; then
+            if [ $i -eq 1 ]; then
+                echo "Launch stream $i, attaching perf to postgres server"
+                # Last stream, attach perf to postgres pid to collect samples
+                perf record -p $PGPID -m 512 -e "r003C, r00C0" -F 1000 -o ipc-samples.data --\
                     $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
                     2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt
             else
+                echo "Launch stream $i, no perf"
                 $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                    2> stderr_record_stream${i}.txt > stdout_record_stream${i} &
+                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
             fi
 
             let "i=$i+1"
@@ -153,12 +168,15 @@ else
 
                 query_file="$RUNDIR/throughput_query$i"
                 # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
-                if [ $i -eq $NUMSTREAMS ]; then
+                #if [ $i -eq $NUMSTREAMS ]; then
+                if [ $i -eq 1 ]; then
+                    echo "Launch stream $i, attaching perf to postgres server"
                     # Last stream, attach perf to postgres pid
                     LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
                         $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
                         2>> perf-stats.csv > stdout_stat_stream${i}_$counter.txt &
                 else
+                    echo "Launch stream $i, no perf"
                     $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
                         2> stderr_stat_stream${i}_$counter.txt > stdout_stat_stream${i}_$counter.txt &
                 fi
@@ -185,7 +203,4 @@ fi
 
 if [ "$SIMULATOR" = false ]; then
     $PGBINDIR/pg_ctl stop -D $DATADIR
-    if [ "$STAT" = false ]; then
-        source "$BASEDIR/common/callgraph.sh"
-    fi
 fi
