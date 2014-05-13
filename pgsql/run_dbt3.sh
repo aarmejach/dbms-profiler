@@ -8,27 +8,16 @@ mkdir -p $RESULTS
 cd $RESULTS
 
 # Start and Warmup
-if [ "$SIMULATOR" = false ]; then
-    echo "Start pg server"
-    $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
-    PGPID=$!
-    while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
-        echo "Waiting for the Postgres server to start"
-        sleep 2
-    done
+echo "Start pg server"
+$PGBINDIR/postgres -D "$DATADIR" -p $PORT &
+PGPID=$!
+while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
+    echo "Waiting for the Postgres server to start"
+    sleep 2
+done
 
-    # Additional sleep time seems necessary
-    sleep 3
-
-    # Warmup: run all queries in succession
-    #echo "Warmup: run all queries in succession"
-    #/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        #--output=warmup.exectime $PGBINDIR/psql -h /tmp\
-        #-p $PORT -d $DB_NAME < $QUERIESDIR/qall.sql  2> warmup.stderr > warmup.stdout
-else
-    echo "Execute in Zsim:"
-fi
-
+# Additional sleep time seems necessary
+sleep 3
 
 RUNDIR=$RESULTS/run
 mkdir -p $RUNDIR
@@ -92,13 +81,11 @@ do
             #let "i=$i+1"
     #done
 
-    if [ "$SIMULATOR" = false ]; then
-        # Warmup run each stream once
-        echo "Warmup using stream $i"
-        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-            --output=warmup$i.exectime $PGBINDIR/psql -h /tmp\
-            -p $PORT -d $DB_NAME -f $query_file  2> warmup$i.stderr > warmup$i.stdout &
-    fi
+    # Warmup run each stream once
+    echo "Warmup using stream $i"
+    /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+        --output=warmup$i.exectime $PGBINDIR/psql -h /tmp\
+        -p $PORT -d $DB_NAME -f $query_file  2> warmup$i.stderr > warmup$i.stdout &
 
     let "i=$i+1"
 done
@@ -111,6 +98,12 @@ for p in $(jobs -p); do
   fi
 done
 echo "Warmup done and stream creation done."
+
+if [ "$SIMULATOR" = true ]; then
+    echo "Execute in Zsim: stop postgres server"
+    $PGBINDIR/pg_ctl stop -D $DATADIR
+    sleep 15
+fi
 
 sleep 3
 
@@ -136,7 +129,7 @@ else
             #if [ $i -eq $NUMSTREAMS ]; then
             if [ $i -eq 1 ]; then
                 echo "Launch stream $i, attaching perf to postgres server"
-                # Last stream, attach perf to postgres pid to collect samples
+                # First stream, attach perf to postgres pid to collect samples
                 perf record -p $PGPID -m 512 -e "r003C, r00C0" -F 1000 -o ipc-samples.data --\
                     $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
                     2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt
