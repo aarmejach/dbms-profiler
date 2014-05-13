@@ -45,7 +45,12 @@ def _parse_csv_file(file_name):
       #if ':' in event_str:
         #event_str, event_type = event_str.split(':')
       #event = Event(event_str, int(event_count), event_prc, event_type)
-      event = Event(event_str, float(event_count))
+      try:
+          count = float(event_count)
+      except ValueError:
+          count =0
+          print "Warn: " + event_str + " not counted in " + file_name
+      event = Event(event_str, count)
       events[event_str] = event
   return events
 
@@ -80,12 +85,37 @@ def add_counter(counters, results, counter_name, counter_label, counter_term):
     v[counter_name] = Event(counter_name, count)
   counters[counter_name] = counter_label
 
+def data_to_csv(bench, xtick_labels, column_names, columns_data):
+    assert(len(column_names)==len(columns_data))
+    res = []
+
+    # first row of the file is column names, need two leading empty spaces (workload, bench)
+    column_names.insert(0, '')
+    column_names.insert(0, '')
+    res.append(column_names)
+
+    # Create rest of the rows, 1 elem of xticks and 1st of each data list.
+    for x in xtick_labels:
+        row = []
+        row.append(bench)
+        row.append(x)
+        for elem in columns_data:
+            assert(len(elem)==len(xtick_labels))
+            row.append(elem[xtick_labels.index(x)])
+        res.append(row)
+    return res
+
+def write_csv(path, data):
+    import csv
+    with open(path, 'wb') as csvfile:
+        spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerows(data)
+
 def mk_barchart(title, xticks, legend, data, data_err=None, ylim=None):
     assert(len(legend)==len(data))
     ind = np.arange(len(xticks))  # the x locations for the groups
     barwidth = 1.0/(len(legend)+1)       # the width of the bars
 
-    print globals().keys()
     fig = plt.figure(figsize=figure_size)
     ax = fig.add_subplot(111)
 
@@ -247,7 +277,7 @@ def plot_bar(counters, results, counter_name):
         columns_data = []
         # TODO Change to: for dir in db/bench/scale
         for qry in queries:
-          qstr = 'q%02d'%qry
+          qstr = 'q%02d'%int(qry)
           key = ('perf', db, bench, scale, qstr)
           tmp = results.get(key)
           xtick_labels.append(qry)
@@ -277,8 +307,10 @@ def plot_bar(counters, results, counter_name):
                 data_err = column_ids_errdata,
                 ylim = ylim,
                 )
+        csv_data = data_to_csv(bench, xtick_labels, column_names, columns_data)
         path="%s/%s/%s/%s"%(folder_figures, db, bench, scale)
         if not os.path.exists(path): os.makedirs(path)
+        write_csv("%s/%s-%s-%s-%s.csv" % (path, counter_name, db, bench, scale), csv_data)
         plt.savefig("%s/%s-%s-%s-%s.eps" % (path, counter_name, db, bench, scale))
         #plt.show()
 
@@ -300,7 +332,7 @@ def plot_stacked(counters, results, name, *counter_name):
         for elem in counter_name:
             d = []
             for qry in queries:
-                qstr = 'q%02d'%qry
+                qstr = 'q%02d'%(int(qry))
                 key = ('perf', db, bench, scale, qstr)
                 tmp = results.get(key)
                 try:
@@ -322,8 +354,10 @@ def plot_stacked(counters, results, name, *counter_name):
                               ylim = ylim,
                               xticks_per_bar=xticks_per_bar_labels,
                               )
+        csv_data = data_to_csv(bench, xtick_labels, column_names, columns_data)
         path="%s/%s/%s/%s"%(folder_figures, db, bench, scale)
         if not os.path.exists(path): os.makedirs(path)
+        write_csv("%s/%s-%s-%s-%s.csv" % (path, name, db, bench, scale), csv_data)
         plt.savefig("%s/%s-%s-%s-%s.eps" % (path, name, db, bench, scale))
         #plt.show()
 
@@ -335,15 +369,17 @@ def _main():
 
   # Configuration parameters
   file_name = "common/perf-counters-axle-list"
-  folder_results = "results-axle/"
+  folder_results = "results-axle/perf/"
   folder_figures = "figures/" + folder_results
   #databases = 'pgsql monetdb'.split()
   #benchmarks = 'tpch dbt3'.split()
   #scales = '1 100'.split()
   databases = 'pgsql'.split()
   benchmarks = 'tpch'.split()
-  scales = '1'.split()
-  queries = range(1,23)
+  scales = '10'.split()
+  #queries = range(1,23)
+  #queries = "2 3 4 5 6 8 10 11 12 13 14 15 16 17 20 22".split()
+  queries = "2 5 6 8 14 15 16 17 20 22".split()
 
   # Get counters of interest and read results
   counters = get_counters()
@@ -361,60 +397,70 @@ def _main():
   # Caches
   add_counter(counters, results, 'l1i_mpki', 'L1I MPKI', '( 1000 * $280 ) / $total_insts')
   add_counter(counters, results, 'l1d_mpki', 'L1D MPKI', '( 1000 * $151 ) / $total_insts')
-  #add_counter(counters, results, 'l2_mpki', 'L2 MPKI', '( 1000 * $4f2e ) / $total_insts')
-  #add_counter(counters, results, 'l2i_mpki', 'L2I MPKI', '( 1000 * $2024 ) / $total_insts')
-  #add_counter(counters, results, 'l2d_mpki', 'L2D MPKI', '$l2_mpki - $l2i_mpki')
-  #add_counter(counters, results, 'l3_mpki', 'L3 MPKI', '( 1000 * $412e ) / $total_insts')
+  add_counter(counters, results, 'l2_mpki' , 'L2 MPKI' , '( 1000 * $4f2e ) / $total_insts')
+  add_counter(counters, results, 'l2i_mpki', 'L2I MPKI', '( 1000 * $2024 ) / $total_insts')
+  add_counter(counters, results, 'l2d_mpki', 'L2D MPKI', '$l2_mpki - $l2i_mpki')
+  add_counter(counters, results, 'l3_mpki' , 'L3 MPKI' , '( 1000 * $412e ) / $total_insts')
 
   # Branch Predictor
-  #add_counter(counters, results, 'prcnt_misspred_branches',
-                #'% Misspredicted branches', '( $c5 / $c4 ) * 100')
+  add_counter(counters, results, 'prcnt_misspred_branches',
+                '% Misspredicted branches', '( $c5 / $c4 ) * 100')
   #add_counter(counters, results, 'prcnt_misspred_cond_branches',
                 #'% Misspredicted conditional branches', '( $1c5 / $1c4 ) * 100')
 
   # Stalls General
+  add_counter(counters, results, 'total_stall_compute',
+                'Total cycles calculated by stall compute counters',
+                '$15301c2:u + $15301c2:k + $1d301c2:u + ( $3c:k - $15301c2:k )')
   add_counter(counters, results, 'prcnt_cycles_compute_user',
-                '% Computational cycles user-level', '( $15301C2:u / $total_cycles ) * 100')
+                '% Computational cycles user-level', '( $15301c2:u / $total_stall_compute ) * 100')
   add_counter(counters, results, 'prcnt_cycles_compute_kernel',
-                '% Computational cycles kernel-level', '( $15301C2:k / $total_cycles ) * 100')
+                '% Computational cycles kernel-level', '( $15301c2:k / $total_stall_compute ) * 100')
   add_counter(counters, results, 'prcnt_cycles_stalled_user',
-                '% Stalled cycles user-level', '( $1d301C2:u / $total_cycles ) * 100')
+                '% Stalled cycles user-level', '( $1d301c2:u / $total_stall_compute ) * 100')
   add_counter(counters, results, 'prcnt_cycles_stalled_kernel',
-                '% Stalled cycles kernel-level', '( $1d301C2:k / $total_cycles ) * 100')
+      '% Stalled cycles kernel-level', '( ( $3c:k - $15301c2:k ) / $total_stall_compute ) * 100') # XXX
 
   # Stalls Memory
-  #add_counter(counters, results, 'prcnt_cycles_dtlb_walk',
-                #'% DTLB load miss walk cycles', '( $408 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_itlb_walk',
-                #'% ITLB walk cycles', '( $485 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_pending_l1d',
-                #'% cycles with a pending L1D load miss', '( $2A3 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_pending_l2',
-                #'% cycles with a pending L2 load miss', '( $1A3 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_dtlb_walk',
+                '% DTLB load miss walk cycles', '( $408 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_itlb_walk',
+                '% ITLB walk cycles', '( $485 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_l1d',
+                '% cycles with a pending L1D load miss', '( $2a3 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_l2',
+                '% cycles with a pending L2 load miss', '( $1a3 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_offcore_llcmem',
+                '% cycles with an outstanding L2 miss request (i or d)', '( $1530860 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_l2i',
+                '% cycles instruction stalls on l2', '( ( ( 6 / 40 ) * ( $1024 / $2024 * $1530260 ) ) / $total_cycles ) * 100')
 
   # Stalls core
-  #add_counter(counters, results, 'prcnt_cycles_empty_freelist',
-                #'% cycles stalled free list empty', '( $C5B / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_pregisters',
-                #'% cycles stalled control structures full for physical registers',
-                #'( $F5B / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_branchorderbuffer',
-                #'% cycles allocator stalled full branch order buffer',
-                #'( $405B / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_oooresources',
-                #'% cycles stalled full OOO resources', '( $4F5B / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_iq',
-                #'% cycles stalled full instructuion queue - no issue', '( $487 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_lb',
-                #'% cycles stalled full load buffers', '( $2A2 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_rs',
-                #'% cycles stalled full reservation stations', '( $4A2 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_sb',
-                #'% cycles stalled full store buffers', '( $8A2 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_full_rob',
-                #'% cycles stalled full reorder buffer', '( $10A2 / $total_cycles ) * 100')
-  #add_counter(counters, results, 'prcnt_cycles_writting_fpuword',
-                #'% cycles stalled writting FPU control word', '( $20A2 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_empty_freelist',
+                '% cycles stalled free list empty', '( $c5b / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_pregisters',
+                '% cycles stalled control structures full for physical registers',
+                '( $f5b / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_branchorderbuffer',
+                '% cycles allocator stalled full branch order buffer',
+                '( $405b / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_oooresources',
+                '% cycles stalled full OOO resources', '( $4f5b / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_iq',
+                '% cycles stalled full instructuion queue - no issue', '( $487 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_lb',
+                '% cycles stalled full load buffers', '( $2a2 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_rs',
+                '% cycles stalled full reservation stations', '( $4a2 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_sb',
+                '% cycles stalled full store buffers', '( $8a2 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_full_rob',
+                '% cycles stalled full reorder buffer', '( $10a2 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_writting_fpuword',
+                '% cycles stalled writting FPU control word', '( $20a2 / $total_cycles ) * 100')
+
+  # MLP
+  add_counter(counters, results, 'mlp', 'Memory level parallelism', '$530160 / $1530160')
 
   # Template
   #add_counter(counters, results, '', '', '')
@@ -425,15 +471,27 @@ def _main():
   plot_bar(counters, results, 'ipc')
   plot_bar(counters, results, 'l1i_mpki')
   plot_bar(counters, results, 'l1d_mpki')
-  #plot_bar(counters, results, 'l2_mpki')
-  #plot_bar(counters, results, 'l2i_mpki')
-  #plot_bar(counters, results, 'l2d_mpki')
-  #plot_bar(counters, results, 'l3_mpki')
+  plot_bar(counters, results, 'l2_mpki')
+  plot_bar(counters, results, 'l2i_mpki')
+  plot_bar(counters, results, 'l2d_mpki')
+  plot_bar(counters, results, 'l3_mpki')
+  plot_bar(counters, results, 'mlp')
 
   # Plot metric of interest -- barstacks
-  #plot_stacked(counters, results, 'compute-stall',
-                #'prcnt_cycles_compute_user', 'prcnt_cycles_compute_kernel',
-                #'prcnt_cycles_stalled_user', 'prcnt_cycles_stalled_kernel')
+  plot_stacked(counters, results, 'compute-stall-breakdown',
+                'prcnt_cycles_compute_user', 'prcnt_cycles_compute_kernel',
+                'prcnt_cycles_stalled_user', 'prcnt_cycles_stalled_kernel')
+
+  plot_stacked(counters, results, 'memory-stalls-breakdown',
+                'prcnt_cycles_dtlb_walk', 'prcnt_cycles_itlb_walk',
+                'prcnt_cycles_pending_l1d', 'prcnt_cycles_pending_l2')
+
+  plot_stacked(counters, results, 'core-stalls-breakdown',
+                'prcnt_cycles_empty_freelist', 'prcnt_cycles_full_pregisters',
+                'prcnt_cycles_full_branchorderbuffer', 'prcnt_cycles_full_oooresources',
+                'prcnt_cycles_full_iq', 'prcnt_cycles_full_lb',
+                'prcnt_cycles_full_rs', 'prcnt_cycles_full_sb',
+                'prcnt_cycles_full_rob', 'prcnt_cycles_writting_fpuword')
 
 if __name__ == '__main__':
   _main()

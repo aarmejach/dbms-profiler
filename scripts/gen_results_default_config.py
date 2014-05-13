@@ -2,7 +2,7 @@ mp.rcParams['ps.useafm'] = True
 mp.rcParams['pdf.use14corefonts'] = True
 #mp.rcParams['text.usetex'] = True
 
-figure_size = (10,4)
+figure_size = (17,9)
 config_fname = "local.config.py"
 EXTENSIONS=['.csv']
 # hatch_patterns = ('//', 'o', 'x', '\\\\', '*', '+', 'O', '.')
@@ -18,8 +18,8 @@ num_clustered = 1 # number of clustered bars for stacked-cluster charts
 xtitle='X-Axis Title'
 ytitle='Y-Axis Title'
 title = "from-filename"
-legend_ncol = 8 # make legend in one row (horizontal)
-legend_loc = 'best'
+legend_ncol = 5 # make legend in one row (horizontal)
+legend_loc = 9
 # 'best'         : 0, (only implemented for axis legends)
 # 'upper right'  : 1,
 # 'upper left'   : 2,
@@ -35,14 +35,14 @@ legend_loc = 'best'
 lable_angle_rotation=0
 lable_y_space=0
 
-title_fontsize=20
-xtitle_fontsize=16
-ytitle_fontsize=17
-xlabel_fontsize=15.5
-ylabel_fontsize=16
-legend_fontsize=20
+title_fontsize=16
+xtitle_fontsize=14
+ytitle_fontsize=14
+xlabel_fontsize=12.5
+ylabel_fontsize=14
+legend_fontsize=10
 text_fontsize=14.5
-numbers_fontsize=16
+numbers_fontsize=14
 
 labels_rotation='horizontal'
 labels_y=-0.08
@@ -67,8 +67,9 @@ palette_fighting = "#262626 #475959 #689493 #9DC4C4 #EBDDC7"
 #palette_blue15 = "#CC0000 #99FF00 #FFCC00 #3333FF "
 palette_1 = "#777777 #FFFFFF #CCCCCC #FFFFFF "
 palette_2 = "#DDDDDD #FFFFFF #FFFFFF #DDDDDD "
+palette_3 = "#333333 #777777 #CCCCCC #FFFFFF "
 
-colors = [colorConverter.to_rgb(a) for a in (palette_1 + palette_2).split()] # use palette_blue2+palette_blue15 for colored
+colors = [colorConverter.to_rgb(a) for a in (palette_1 + palette_2 + palette_3).split()] # use palette_blue2+palette_blue15 for colored
 
 my_ylim = {}
 
