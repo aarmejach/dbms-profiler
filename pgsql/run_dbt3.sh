@@ -130,9 +130,9 @@ else
             if [ $i -eq 1 ]; then
                 echo "Launch stream $i, attaching perf to postgres server"
                 # First stream, attach perf to postgres pid to collect samples
-                perf record -p $PGPID -m 512 -e "r003C, r00C0" -F 1000 -o ipc-samples.data --\
+                perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
                     $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
-                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt
+                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
             else
                 echo "Launch stream $i, no perf"
                 $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\

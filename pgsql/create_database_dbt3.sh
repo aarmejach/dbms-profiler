@@ -38,19 +38,23 @@ then
   make -j $CORES
 fi
 
-mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
-cd "$TPCHTMP"
-cp "$DBGENDIR/dists.dss" .
-# Run dbgen with "force", to overwrite existing files
-# Create table files separately to have better IO throughput
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T c &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T s &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T n &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T r &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T O &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T L &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T P &
-"$DBGENDIR/dbgen" -s $SCALE -f -v -T S &
+if [ -d "$TPCHTMP" ]; then
+    cd "$TPCHTMP"
+else
+    mkdir -p "$TPCHTMP" || die "Failed to create temporary directory: '$TPCHTMP'"
+    cd "$TPCHTMP"
+    cp "$DBGENDIR/dists.dss" .
+    # Run dbgen with "force", to overwrite existing files
+    # Create table files separately to have better IO throughput
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T c &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T s &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T n &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T r &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T O &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T L &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T P &
+    "$DBGENDIR/dbgen" -s $SCALE -f -v -T S &
+fi
 
 # Wait for all pending jobs to finish.
 for p in $(jobs -p);
@@ -112,7 +116,7 @@ done
 
 # Remove tmp folder
 cd "$BASEDIR"
-rm -rf "$TPCHTMP"
+#rm -rf "$TPCHTMP"
 
 # Since wal_level is hopefully set to 'minimal', it ought to be possible to skip
 # WAL logging these create index operations, too.

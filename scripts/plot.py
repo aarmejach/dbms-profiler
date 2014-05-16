@@ -379,7 +379,7 @@ def _main():
   scales = '10'.split()
   #queries = range(1,23)
   #queries = "2 3 4 5 6 8 10 11 12 13 14 15 16 17 20 22".split()
-  queries = "2 5 6 8 14 15 16 17 20 22".split()
+  queries = "2 5 6 14 15 16 22".split()
 
   # Get counters of interest and read results
   counters = get_counters()
