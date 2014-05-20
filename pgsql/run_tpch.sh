@@ -67,6 +67,10 @@ do
             perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
                 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
                 2> stderr_samples.txt > stdout_samples.txt
+
+            # Parse samples
+            perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
+                > ipc-samples-perf.csv
         else
             source "$BASEDIR/common/perf-counters-axle.sh"
             for counter in "${array[@]}"; do

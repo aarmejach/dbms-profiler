@@ -148,6 +148,10 @@ else
               wait $p
           fi
         done
+
+        # Parse samples
+        perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
+            > ipc-samples-perf.csv
     else
         # Using perf stat
         source "$BASEDIR/common/perf-counters-axle.sh"
