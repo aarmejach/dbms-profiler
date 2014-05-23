@@ -1,5 +1,6 @@
 results*
 data/
+figures/
 
 benchmarks/dbgen/bcd2.o
 benchmarks/dbgen/bm_utils.o
