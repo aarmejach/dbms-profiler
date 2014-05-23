@@ -55,6 +55,7 @@ do
         cp $PGSIMSCRIPT run-$ii.sh
         sed -i "s/%QNUM%/$ii/g" run-$ii.sh
         source ./run-$ii.sh
+        python $BASEDIR/common/parse-ipc-samples-zsim.py > ipc-samples-zsim.csv
     else
         if [ "$STAT" = false ]; then
             # Execute each query once
@@ -69,7 +70,7 @@ do
                 2> stderr_samples.txt > stdout_samples.txt
 
             # Parse samples
-            perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
+            perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples-perf.py\
                 > ipc-samples-perf.csv
         else
             source "$BASEDIR/common/perf-counters-axle.sh"
