@@ -90,8 +90,8 @@ def data_to_csv(bench, xtick_labels, column_names, columns_data):
     res = []
 
     # first row of the file is column names, need two leading empty spaces (workload, bench)
-    column_names.insert(0, '')
-    column_names.insert(0, '')
+    column_names.insert(0, 'query')
+    column_names.insert(0, 'workload')
     res.append(column_names)
 
     # Create rest of the rows, 1 elem of xticks and 1st of each data list.

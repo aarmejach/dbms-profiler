@@ -28,17 +28,17 @@ def plot_lines(results_perf, results_zsim):
         ax = fig.add_subplot(111)
 
         #pprint(results_perf)
-        names_perf = results_perf[key].dtype.names
-        names_zsim = results_zsim[key].dtype.names
+        #names_perf = results_perf[key].dtype.names
+        #names_zsim = results_zsim[key].dtype.names
 
         # Line for perf
-        x = results_perf[key][names_perf[0]]
-        y = results_perf[key][names_perf[3]]
+        x = results_perf[key]['absolute_time']
+        y = results_perf[key]['ipc']
         line_perf = mp.lines.Line2D(x, y, linewidth=1, color='r', label='Real')
 
         # Line for zsim
-        x = results_zsim[key][names_zsim[0]]
-        y = results_zsim[key][names_zsim[3]]
+        x = results_zsim[key]['absolute_time']
+        y = results_zsim[key]['ipc']
         line_zsim = mp.lines.Line2D(x, y, linewidth=1, color='b', label='Zsim')
 
         ax.add_line(line_perf)

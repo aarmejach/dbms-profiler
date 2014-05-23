@@ -31,6 +31,8 @@ def _main():
     #prev_cycles = cycles[0][0]
     #prev_time = 0
 
+    print 'absolute_time,instructions,cycles,ipc'
+
     for i in xrange(1,len(instructions)):
         current_cycles = float(cycles[i][0])
 

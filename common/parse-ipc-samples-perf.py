@@ -6,6 +6,8 @@ pid = 0
 freq=2.6
 found = False
 
+print 'abolute_time,instructions,cycles,ipc'
+
 for line in sys.stdin:
     if pid != 0 and str(':' + pid) in line:
         if not 'postgres' in line:
