@@ -370,7 +370,7 @@ def _main():
   # Configuration parameters
   file_name = "common/perf-counters-axle-list"
   folder_results = "results-axle/perf/"
-  folder_figures = "figures/" + folder_results
+  folder_figures = "figures/perf/"
   #databases = 'pgsql monetdb'.split()
   #benchmarks = 'tpch dbt3'.split()
   #scales = '1 100'.split()
@@ -446,8 +446,8 @@ def _main():
                 '( $405b / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_full_oooresources',
                 '% cycles stalled full OOO resources', '( $4f5b / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_full_iq',
-                '% cycles stalled full instructuion queue - no issue', '( $487 / $total_cycles ) * 100')
+  #add_counter(counters, results, 'prcnt_cycles_full_iq',
+                #'% cycles stalled full instructuion queue - no issue', '( $487 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_full_lb',
                 '% cycles stalled full load buffers', '( $2a2 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_full_rs',
@@ -489,7 +489,7 @@ def _main():
   plot_stacked(counters, results, 'core-stalls-breakdown',
                 'prcnt_cycles_empty_freelist', 'prcnt_cycles_full_pregisters',
                 'prcnt_cycles_full_branchorderbuffer', 'prcnt_cycles_full_oooresources',
-                'prcnt_cycles_full_iq', 'prcnt_cycles_full_lb',
+                'prcnt_cycles_full_lb',
                 'prcnt_cycles_full_rs', 'prcnt_cycles_full_sb',
                 'prcnt_cycles_full_rob', 'prcnt_cycles_writting_fpuword')
 
