@@ -46,14 +46,7 @@ do
     cd "$dir"
 
     if [ "$SIMULATOR" = true ]; then
-        cp $PGSIMCONFIG in.cfg
-        sed -i "s#PGBINDIR#$PGBINDIR#g" in.cfg
-        sed -i "s#PORT#$PORT#g" in.cfg
-        sed -i "s#DATADIR#$DATADIR#g" in.cfg
-        cp $PGSIMSCRIPT run-$ii.sh
-        sed -i "s/%QNUM%/$ii/g" run-$ii.sh
-        source ./run-$ii.sh
-        python $BASEDIR/common/parse-ipc-samples-zsim.py > ipc-samples-zsim.csv
+        do_launch_simulation $ii
     else
         if [ "$STAT" = false ]; then
             # Execute each query once for callgraph
@@ -91,4 +84,7 @@ if [ "$SIMULATOR" = false ]; then
     if [ "$STAT" = false ]; then
         source "$BASEDIR/common/callgraph.sh"
     fi
+else
+    # Wait for zsim simulations to finish
+    do_wait_zsim
 fi

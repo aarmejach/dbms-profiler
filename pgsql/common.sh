@@ -45,6 +45,22 @@ do_wait() {
     done
 }
 
+do_wait_available_core() {
+    while [ `pgrep -u $USER -f 'zsim' -c` -ge $CORES ]; do
+        sleep 10
+    done
+    running=`pgrep -u $USER -f 'zsim' -c`
+    echo "Core available, jobs running: $running, cores: $CORES"
+}
+
+do_wait_zsim() {
+    echo "Wait for Zsim simulations to finish"
+    while [ `pgrep -u $USER -f 'zsim' -c` -gt 0 ]; do
+        sleep 10
+    done
+    echo "All Zsim simulations finished"
+}
+
 do_check_port() {
     # Check for processor running on Postgres given port
     PORT_PROCLIST="$(lsof -i tcp:$PORT | tail -n +2 | awk '{print $2}')"

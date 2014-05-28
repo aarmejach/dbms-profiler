@@ -43,13 +43,7 @@ if [ "$SIMULATOR" = true ]; then
 fi
 
 if [ "$SIMULATOR" = true ]; then
-        cp $PGSIMCONFIG in.cfg
-        sed -i "s#PGBINDIR#$PGBINDIR#g" in.cfg
-        sed -i "s#PORT#$PORT#g" in.cfg
-        sed -i "s#DATADIR#$DATADIR#g" in.cfg
-        cp $PGSIMSCRIPT run.sh
-        sed -i "s/%NUMSTREAMS%/$NUMSTREAMS/g" run.sh
-        source ./run.sh
+    do_launch_simulation $NUMSTREAMS
 else
     # Run the streams for each counter
 
@@ -124,4 +118,7 @@ fi
 
 if [ "$SIMULATOR" = false ]; then
     do_stop_postgres
+else
+    # Wait for zsim simulations
+    do_wait_zsim
 fi
