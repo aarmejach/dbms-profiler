@@ -1,20 +1,29 @@
 #!/bin/bash -e
 
-# Install teardown() function to kill any lingering jobs
-# Check if postgres is running
+# Common function definitions
 source "$BASEDIR/$DATABASE/common.sh"
+
+# Include tpch warmup code
+source "$BASEDIR/$DATABASE/do_warmup_tpch.sh"
+
+# Include stream creation code
+source "$BASEDIR/$DATABASE/do_stream_dbt3.sh"
+
+# Install teardown function defined in common
+# Reset cpu governor and kill lingering jobs
+test -z "${DEBUG-}" && trap "teardown" EXIT
+
+# Check if pgsql port is free
+do_check_port
+
+# Check if pgsql already running in datadir
+do_check_datadir
 
 mkdir -p $RESULTS
 cd $RESULTS
 
-# Start and Warmup
-echo "Start pg server"
-$PGBINDIR/postgres -D "$DATADIR" -p $PORT &
-PGPID=$!
-while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
-    echo "Waiting for the Postgres server to start"
-    sleep 2
-done
+# Start Postgres server
+do_start_postgres
 
 # Additional sleep time seems necessary
 sleep 3
@@ -22,90 +31,16 @@ sleep 3
 RUNDIR=$RESULTS/run
 mkdir -p $RUNDIR
 
-# Create stream files and warmup
-i=1
-while [ $i -le $NUMSTREAMS ]
-do
-    query_file="$RUNDIR/throughput_query$i"
-    tmp_query_file="$RUNDIR/tmp_throughput_query$i.sql"
-    param_file="$RUNDIR/throughput_param$i"
+# Warmup: run all queries in succession, always do this, even with zsim
+do_warmup_tpch
 
-    # output PID to a tmp file
-    echo "$$" > $RUNDIR/PID$i
-
-    if [ ! -f $RUNDIR/$SEED_FILE ]; then
-        echo "creating seed file $SEED_FILE, you can change the seed by "
-        echo "modifying this file"
-        date +%-m%d%H%M%S > $RUNDIR/$SEED_FILE
-    fi
-    seed=`cat $RUNDIR/$SEED_FILE`
-    let "seed = $seed + $i"
-
-    # generate the queries for thoughput test
-    rm -f $query_file
-    rm -f $tmp_query_file
-    cd $DBGENDIR
-    DSS_QUERY=queries/$DATABASE ./qgen -c -r $seed -p $i -s $SCALE -l $param_file > $query_file
-    cd $RESULTS
-
-    # Ugly hack to remove queries from query_file
-    for q in $QUERIESALL; do
-        if [[ $QUERIES =~ (^| )$q($| ) ]]; then
-            echo "keep query $q"
-        else
-            echo "strip query $q"
-            line=`grep "(Q$q)" $query_file -n | cut -f1 -d:`
-            len=`wc -l $DBGENDIR/queries/$DATABASE/$q.sql | cut -f1 -d" "`
-            let "lineend=$line+$len-1"
-            sed -i "${line},${lineend}d" $query_file
-        fi
-    done
-    #line=`grep "(Q1)" $query_file -n | cut -f1 -d:`
-    #let "lineend=$line+26"
-    #sed -i "${line},${lineend}d" $query_file
-
-    # modify $query_file so that the commands are in one line
-    #${PARSE_QUERY} $query_file $tmp_query_file T $perf_run_num $stream_num
-
-    # get the execution plan for each query
-    #PLANDIR=$OUTPUT_DIR/db/plans
-    #mkdir -p $PLANDIR
-    #i=1
-    #while [ $i -le 22 ]
-    #do
-            #if [ $i -ne 15 ]; then
-                    #${DBSCRIPTDIR}/get_query_plan.sh ${scale_factor} ${i} \
-                                    #${PLANDIR}/throughput_stream${stream_num}_query${i}.txt \
-                                    #${RUNDIR} ${SEED_FILE} ${DBPORT}
-            #fi
-            #let "i=$i+1"
-    #done
-
-    # Warmup run each stream once
-    echo "Warmup using stream $i"
-    /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        --output=warmup$i.exectime $PGBINDIR/psql -h /tmp\
-        -p $PORT -d $DB_NAME -f $query_file  2> warmup$i.stderr > warmup$i.stdout &
-
-    let "i=$i+1"
-done
-
-# Wait for all pending streams to finish.
-echo "Wait for all pending streams to finish"
-for p in $(jobs -p); do
-  if [ $p != $PGPID ]; then
-      wait $p
-  fi
-done
-echo "Warmup done and stream creation done."
+# Create stream files
+do_stream_creation
 
 if [ "$SIMULATOR" = true ]; then
     echo "Execute in Zsim: stop postgres server"
-    $PGBINDIR/pg_ctl stop -D $DATADIR
-    sleep 15
+    do_stop_postgres
 fi
-
-sleep 3
 
 if [ "$SIMULATOR" = true ]; then
         cp $PGSIMCONFIG in.cfg
@@ -122,8 +57,6 @@ else
         # Unsing perf record, no callgraph, just sampling.
         i=1
         while [ $i -le $NUMSTREAMS ]; do
-            # run the queries
-            echo "`date`: start throughput queries for stream $i for counter $counter"
 
             query_file="$RUNDIR/throughput_query$i"
             #if [ $i -eq $NUMSTREAMS ]; then
@@ -143,15 +76,11 @@ else
         done
 
         # Wait for all streams to finish.
-        for p in $(jobs -p); do
-          if [ $p != $PGPID ]; then
-              wait $p
-          fi
-        done
+        do_wait
 
-        # Parse samples
-        perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
-            > ipc-samples-perf.csv
+        # Parse samples: Not working for multi-process runs
+        #perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
+            #> ipc-samples-perf.csv
     else
         # Using perf stat
         source "$BASEDIR/common/perf-counters-axle.sh"
@@ -164,7 +93,6 @@ else
                 t=$(timer)
 
                 query_file="$RUNDIR/throughput_query$i"
-                # You can't use -a and have the query redirected to a file with -o, so use -a and redirect.
                 #if [ $i -eq $NUMSTREAMS ]; then
                 if [ $i -eq 1 ]; then
                     echo "Launch stream $i, attaching perf to postgres server"
@@ -182,11 +110,7 @@ else
             done
 
             # Wait for all streams to finish.
-            for p in $(jobs -p); do
-              if [ $p != $PGPID ]; then
-                  wait $p
-              fi
-            done
+            do_wait
 
             e_time=`$GTIME`
             echo "`date`: end queries for counter $counter"
@@ -199,5 +123,5 @@ else
 fi
 
 if [ "$SIMULATOR" = false ]; then
-    $PGBINDIR/pg_ctl stop -D $DATADIR
+    do_stop_postgres
 fi
