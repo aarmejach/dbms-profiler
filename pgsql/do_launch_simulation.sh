@@ -10,19 +10,29 @@ do_launch_simulation() {
 
     echo "Launching Zsim simulation for $1, $BENCHMARK, with scale ${SCALE}GB"
 
+    # Create a copy of the DB
+    mkdir -p ${DATADIR}-$1
+    cp -a ${DATADIR}/* ${DATADIR}-$1
+    chmod 700 ${DATADIR}-$1
+
+    # Set new port
+    nozero=$(echo $1 | sed 's/^0*//')
+    let "NEWPORT=$PORT+$nozero"
+
     cp $PGSIMCONFIG in.cfg
     sed -i "s#PGBINDIR#$PGBINDIR#g" in.cfg
-    sed -i "s#PORT#$PORT#g" in.cfg
-    sed -i "s#DATADIR#$DATADIR#g" in.cfg
+    sed -i "s#PORT#$NEWPORT#g" in.cfg
+    sed -i "s#DATADIR#${DATADIR}-$1#g" in.cfg
     cp $PGSIMSCRIPT run-$1.sh
     sed -i "s#QNUM#$1#g" run-$1.sh
     sed -i "s#PGBINDIR#$PGBINDIR#g" run-$1.sh
-    sed -i "s#PORT#$PORT#g" run-$1.sh
+    sed -i "s#PORT#$NEWPORT#g" run-$1.sh
     sed -i "s#DBNAME#$DB_NAME#g" run-$1.sh
     sed -i "s#QUERIESDIR#$QUERIESDIR#g" run-$1.sh
-    sed -i "s#DATADIR#$DATADIR#g" run-$1.sh
+    sed -i "s#DATADIR#${DATADIR}-$1#g" run-$1.sh
     sed -i "s#BASEDIR#$BASEDIR#g" run-$1.sh
     sed -i "s#RUNDIR#$RUNDIR#g" run-$1.sh
     sed -i "s#NUMSTREAMS#$NUMSTREAMS#g" run-$1.sh
+    chmod +x run-$1.sh
     ./run-$1.sh &
 }
