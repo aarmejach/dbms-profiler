@@ -49,8 +49,7 @@ do_wait_available_core() {
     while [ `pgrep -u $USER -f 'zsim' -c` -ge $CORES ]; do
         sleep 10
     done
-    running=`pgrep -u $USER -f 'zsim' -c`
-    echo "Core available, jobs running: $running, cores: $CORES"
+    echo "Core available"
 }
 
 do_wait_zsim() {

@@ -9,6 +9,9 @@ source "$BASEDIR/$DATABASE/do_warmup_tpch.sh"
 # Include stream creation code
 source "$BASEDIR/$DATABASE/do_stream_dbt3.sh"
 
+# Include simulation execution code
+source "$BASEDIR/$DATABASE/do_launch_simulation.sh"
+
 # Install teardown function defined in common
 # Reset cpu governor and kill lingering jobs
 test -z "${DEBUG-}" && trap "teardown" EXIT
@@ -121,4 +124,5 @@ if [ "$SIMULATOR" = false ]; then
 else
     # Wait for zsim simulations
     do_wait_zsim
+    rm -r ${DATADIR}-*
 fi

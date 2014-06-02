@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Clean up when exiting
-trap 'kill $(jobs -p)' EXIT SIGINT SIGTERM
+trap 'kill $(jobs -p)' SIGINT SIGTERM
 
 # zsim execution
 $ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt &
