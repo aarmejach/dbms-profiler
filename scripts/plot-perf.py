@@ -376,10 +376,10 @@ def _main():
   #scales = '1 100'.split()
   databases = 'pgsql'.split()
   benchmarks = 'tpch'.split()
-  scales = '10'.split()
+  scales = '1'.split()
   #queries = range(1,23)
-  #queries = "2 3 4 5 6 8 10 11 12 13 14 15 16 17 20 22".split()
-  queries = "2 5 6 14 15 16 22".split()
+  queries = "2 3 4 5 6 7 9 10 12 13 14 15 16 17 18 19 21 22".split()
+  #queries = "2 4 5 6 11 14 16 17 20 22".split()
 
   # Get counters of interest and read results
   counters = get_counters()
@@ -475,6 +475,7 @@ def _main():
   plot_bar(counters, results, 'l2i_mpki')
   plot_bar(counters, results, 'l2d_mpki')
   plot_bar(counters, results, 'l3_mpki')
+  plot_bar(counters, results, 'prcnt_misspred_branches')
   plot_bar(counters, results, 'mlp')
 
   # Plot metric of interest -- barstacks
