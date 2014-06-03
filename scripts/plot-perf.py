@@ -196,16 +196,16 @@ def plot_stacked(counters, results, name, *counter_name):
         xticks_per_bar_labels = None
         ylim = None
         # TODO ylim logic
-        plt = mk_clusterstacked(
-                              config,
-                              name,
-                              xticks=xtick_labels,
-                              legend=column_names,
-                              data=columns_data,
-                              data_err = column_ids_errdata,
-                              ylim = ylim,
-                              xticks_per_bar=xticks_per_bar_labels,
-                              )
+        plt = mk_stacked(
+                          config,
+                          name,
+                          xticks=xtick_labels,
+                          legend=column_names,
+                          data=columns_data,
+                          data_err = column_ids_errdata,
+                          ylim = ylim,
+                          xticks_per_bar=xticks_per_bar_labels,
+                          )
         csv_data = data_to_csv(bench, xtick_labels, column_names, columns_data)
         path="%s/%s/%s/%s"%(folder_figures, db, bench, scale)
         if not os.path.exists(path): os.makedirs(path)
