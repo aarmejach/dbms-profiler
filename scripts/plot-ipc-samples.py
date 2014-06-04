@@ -51,7 +51,7 @@ def plot_lines(results_perf, results_zsim):
         ax.legend()
 
         if not os.path.exists(fig_dir): os.makedirs(fig_dir)
-        plt.savefig("%s/%s.eps" % (fig_dir, '-'.join(key)))
+        plt.savefig("%s/%s-%s.eps" % (fig_dir, 'ipc-samples', '-'.join(key)))
         #plt.show()
 
 def _main():
@@ -62,7 +62,7 @@ def _main():
     perf_dir = "results-axle/perf/"
     zsim_dir = "results-axle/zsim/"
     global fig_dir
-    fig_dir = "figures/ipc-samples/"
+    fig_dir = "figures/validation/"
 
     # Gather results
     results_perf = add_results(perf_dir)
