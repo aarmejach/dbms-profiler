@@ -26,6 +26,8 @@ do_warmup_tpch() {
         ii=$(printf "%02d" $i)
         /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
             --output=warmup_q$ii.exectime $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME\
-            < $QUERIESDIR/q$ii.analyze.sql 2> warmup_q$ii.stderr > warmup_q$ii.stdout
+            < $QUERIESDIR/q$ii.analyze.sql 2> warmup_q$ii.stderr > warmup_q$ii.stdout &
     done
+
+    do_wait
 }

@@ -51,10 +51,14 @@ do
     if [ "$SIMULATOR" = true ]; then
         do_launch_simulation $ii
     else
+        # Warm up run
+        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+            --output=warmup_q$ii.exectime $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME\
+            < $QUERIESDIR/q$ii.analyze.sql 2> warmup_q$ii.stderr > warmup_q$ii.stdout
+
         if [ "$STAT" = false ]; then
             # Execute each query once for callgraph
-            /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-                --output=exectime.txt perf record -a -g -m 512 --\
+            perf record -a -g -m 512 --\
                 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
                 2> stderr_callgraph.txt > stdout_callgraph.txt
 
