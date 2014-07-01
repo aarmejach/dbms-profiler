@@ -11,9 +11,11 @@ do_launch_simulation() {
     echo "Launching Zsim simulation for $1, $BENCHMARK, with scale ${SCALE}GB"
 
     # Create a copy of the DB
-    mkdir -p ${DATADIR}-$1
-    cp -a ${DATADIR}/* ${DATADIR}-$1
-    chmod 700 ${DATADIR}-$1
+    if [ ! -d "${DATADIR}-$1" ]; then
+        mkdir -p ${DATADIR}-$1
+        cp -a ${DATADIR}/* ${DATADIR}-$1
+        chmod 700 ${DATADIR}-$1
+    fi
 
     # Set new port
     nozero=$(echo $1 | sed 's/^0*//')

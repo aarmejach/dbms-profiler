@@ -94,5 +94,5 @@ if [ "$SIMULATOR" = false ]; then
 else
     # Wait for zsim simulations to finish
     do_wait_zsim
-    rm -r ${DATADIR}-*
+    #rm -r ${DATADIR}-*
 fi
