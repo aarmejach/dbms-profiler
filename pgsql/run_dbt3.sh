@@ -31,76 +31,47 @@ do_start_postgres
 # Additional sleep time seems necessary
 sleep 3
 
-RUNDIR=$RESULTS/run
-mkdir -p $RUNDIR
-
 # Warmup: run all queries in succession, always do this, even with zsim
 do_warmup_tpch
-
-# Create stream files
-do_stream_creation
 
 if [ "$SIMULATOR" = true ]; then
     echo "Execute in Zsim: stop postgres server"
     do_stop_postgres
 fi
 
-if [ "$SIMULATOR" = true ]; then
-    do_launch_simulation $NUMSTREAMS
-else
-    # Run the streams for each counter
+for NUMSTREAMS in STREAMS; do
 
-    if [ "$STAT" = false ]; then
-        # Unsing perf record, no callgraph, just sampling.
-        i=1
-        while [ $i -le $NUMSTREAMS ]; do
+    RESULTS=${RESULTS}/${NUMSTREAMS}streams
+    mkdir -p $RESULTS
+    cd $RESULTS
+    RUNDIR=$RESULTS/run
+    mkdir -p $RUNDIR
 
-            query_file="$RUNDIR/throughput_query$i"
-            #if [ $i -eq $NUMSTREAMS ]; then
-            if [ $i -eq 1 ]; then
-                echo "Launch stream $i, attaching perf to postgres server"
-                # First stream, attach perf to postgres pid to collect samples
-                perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
-                    $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
-                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
-            else
-                echo "Launch stream $i, no perf"
-                $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                    2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
-            fi
+    # Create stream files
+    do_stream_creation
 
-            let "i=$i+1"
-        done
-
-        # Wait for all streams to finish.
-        do_wait
-
-        # Parse samples: Not working for multi-process runs
-        #perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
-            #> ipc-samples-perf.csv
+    if [ "$SIMULATOR" = true ]; then
+        do_launch_simulation $NUMSTREAMS
     else
-        # Using perf stat
-        source "$BASEDIR/common/perf-counters-axle.sh"
-        for counter in "${array[@]}"; do
+        # Run the streams for each counter
 
+        if [ "$STAT" = false ]; then
+            # Unsing perf record, no callgraph, just sampling.
             i=1
             while [ $i -le $NUMSTREAMS ]; do
-                # run the queries
-                echo "`date`: start throughput queries for stream $i for counter $counter"
-                t=$(timer)
 
                 query_file="$RUNDIR/throughput_query$i"
                 #if [ $i -eq $NUMSTREAMS ]; then
                 if [ $i -eq 1 ]; then
                     echo "Launch stream $i, attaching perf to postgres server"
-                    # Last stream, attach perf to postgres pid
-                    LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
-                        $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                        2>> perf-stats.csv > stdout_stat_stream${i}_$counter.txt &
+                    # First stream, attach perf to postgres pid to collect samples
+                    perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
+                        $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f ${query_file}\
+                        2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
                 else
                     echo "Launch stream $i, no perf"
                     $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
-                        2> stderr_stat_stream${i}_$counter.txt > stdout_stat_stream${i}_$counter.txt &
+                        2> stderr_record_stream${i}.txt > stdout_record_stream${i}.txt &
                 fi
 
                 let "i=$i+1"
@@ -109,15 +80,52 @@ else
             # Wait for all streams to finish.
             do_wait
 
-            e_time=`$GTIME`
-            echo "`date`: end queries for counter $counter"
-            printf 'Elapsed time: %s\n' $(timer $t)
+            sleep 5
 
-            sleep 2
+            # Parse samples: Not working for multi-process runs
+            #perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples.py\
+                #> ipc-samples-perf.csv
+        else
+            # Using perf stat
+            source "$BASEDIR/common/perf-counters-axle.sh"
+            for counter in "${array[@]}"; do
 
-        done
+                i=1
+                while [ $i -le $NUMSTREAMS ]; do
+                    # run the queries
+                    echo "`date`: start throughput queries for stream $i for counter $counter"
+                    t=$(timer)
+
+                    query_file="$RUNDIR/throughput_query$i"
+                    #if [ $i -eq $NUMSTREAMS ]; then
+                    if [ $i -eq 1 ]; then
+                        echo "Launch stream $i, attaching perf to postgres server"
+                        # Last stream, attach perf to postgres pid
+                        LC_NUMERIC=C perf stat -e $counter -p $PGPID -x "," --\
+                            $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
+                            2>> perf-stats.csv > stdout_stat_stream${i}_$counter.txt &
+                    else
+                        echo "Launch stream $i, no perf"
+                        $PGBINDIR/psql -h /tmp -p ${PORT} -d ${DB_NAME} -f ${query_file}\
+                            2> stderr_stat_stream${i}_$counter.txt > stdout_stat_stream${i}_$counter.txt &
+                    fi
+
+                    let "i=$i+1"
+                done
+
+                # Wait for all streams to finish.
+                do_wait
+
+                e_time=`$GTIME`
+                echo "`date`: end queries for counter $counter"
+                printf 'Elapsed time: %s\n' $(timer $t)
+
+                sleep 2
+
+            done
+        fi
     fi
-fi
+done
 
 if [ "$SIMULATOR" = false ]; then
     do_stop_postgres
