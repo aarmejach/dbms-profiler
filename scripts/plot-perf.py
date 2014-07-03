@@ -101,11 +101,12 @@ def _main():
 
     plot_stacked(data, 'memory-stalls-breakdown',
                 'prcnt_cycles_dtlb_walk', 'prcnt_cycles_itlb_walk',
-                'prcnt_cycles_pending_l1d', 'prcnt_cycles_pending_l2')
+                'prcnt_cycles_pending_l2d_miss',
+                'prcnt_cycles_pending_l2i_miss')
 
     plot_stacked(data, 'core-stalls-breakdown',
-                'prcnt_cycles_empty_freelist', 'prcnt_cycles_full_pregisters',
-                'prcnt_cycles_full_branchorderbuffer', 'prcnt_cycles_full_oooresources',
+                #'prcnt_cycles_empty_freelist', 'prcnt_cycles_full_pregisters',
+                #'prcnt_cycles_full_branchorderbuffer', 'prcnt_cycles_full_oooresources',
                 'prcnt_cycles_full_lb',
                 'prcnt_cycles_full_rs', 'prcnt_cycles_full_sb',
                 'prcnt_cycles_full_rob', 'prcnt_cycles_writting_fpuword')

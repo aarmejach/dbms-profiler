@@ -171,14 +171,15 @@ def _main():
                 '% DTLB load miss walk cycles', '( $408 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_itlb_walk',
                 '% ITLB walk cycles', '( $485 / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_pending_l1d',
+  add_counter(counters, results, 'prcnt_cycles_pending_l1d_miss',
                 '% cycles with a pending L1D load miss', '( $2a3 / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_pending_l2',
-                '% cycles with a pending L2 load miss', '( $1a3 / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_pending_offcore_llcmem',
+  #add_counter(counters, results, 'prcnt_cycles_pending_l2_miss',
+                #'% cycles with a pending L2 load miss', '( $1a3 / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_l2d_miss',
                 '% cycles with an outstanding L2 miss request (i or d)', '( $1530860 / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_pending_l2i',
-                '% cycles instruction stalls on l2', '( ( ( 6 / 40 ) * ( $1024 / $2024 * $1530260 ) ) / $total_cycles ) * 100')
+  add_counter(counters, results, 'prcnt_cycles_pending_l2i_miss',
+                '% cycles instruction stalls on l2', '( $1530260 / $total_cycles ) * 100')
+                #'% cycles instruction stalls on l2', '( ( ( 6 / 40 ) * ( $1024 / $2024 * $1530260 ) ) / $total_cycles ) * 100')
 
   # Stalls core
   add_counter(counters, results, 'prcnt_cycles_empty_freelist',
