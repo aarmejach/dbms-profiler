@@ -7,7 +7,7 @@ source "$BASEDIR/$DATABASE/common.sh"
 source "$BASEDIR/$DATABASE/do_warmup_tpch.sh"
 
 # Include stream creation code
-source "$BASEDIR/$DATABASE/do_stream_dbt3.sh"
+source "$BASEDIR/$DATABASE/do_streams_dbt3.sh"
 
 # Include simulation execution code
 source "$BASEDIR/$DATABASE/do_launch_simulation.sh"
