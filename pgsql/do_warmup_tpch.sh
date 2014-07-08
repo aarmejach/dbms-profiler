@@ -24,6 +24,9 @@ do_warmup_tpch() {
 
     for i in $QUERIES; do
         ii=$(printf "%02d" $i)
+
+        do_wait_available_core_psql
+
         /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
             --output=warmup_q$ii.exectime $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME\
             < $QUERIESDIR/q$ii.analyze.sql 2> warmup_q$ii.stderr > warmup_q$ii.stdout &

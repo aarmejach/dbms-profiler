@@ -6,7 +6,7 @@
 
 do_launch_simulation() {
     # Limit number of simulations to number of cores, wait if necessary
-    do_wait_available_core
+    do_wait_available_core_zsim
 
     echo "Launching Zsim simulation for $1, $BENCHMARK, with scale ${SCALE}GB"
 

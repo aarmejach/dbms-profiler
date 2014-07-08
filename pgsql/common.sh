@@ -45,8 +45,15 @@ do_wait() {
     done
 }
 
-do_wait_available_core() {
+do_wait_available_core_zsim() {
     while [ `pgrep -u $USER -f 'zsim' -c` -ge $CORES ]; do
+        sleep 10
+    done
+    echo "Core available"
+}
+
+do_wait_available_core_psql() {
+    while [ `pgrep -u $USER -f 'psql' -c` -ge $CORES ]; do
         sleep 10
     done
     echo "Core available"
