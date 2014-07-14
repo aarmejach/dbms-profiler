@@ -39,7 +39,7 @@ if [ "$SIMULATOR" = true ]; then
     do_stop_postgres
 fi
 
-for NUMSTREAMS in STREAMS; do
+for NUMSTREAMS in ${STREAMS}; do
 
     RESULTS=${RESULTS}/${NUMSTREAMS}streams
     mkdir -p $RESULTS
@@ -48,7 +48,7 @@ for NUMSTREAMS in STREAMS; do
     mkdir -p $RUNDIR
 
     # Create stream files
-    do_stream_creation
+    do_stream_creation $NUMSTREAMS
 
     if [ "$SIMULATOR" = true ]; then
         do_launch_simulation $NUMSTREAMS

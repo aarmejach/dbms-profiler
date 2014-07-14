@@ -1,9 +1,9 @@
 #!/bin/bash
 
 do_stream_creation() {
-    echo "Creating $NUMSTREAMS stream files"
+    echo "Creating $1 stream files"
     i=1
-    while [ $i -le $NUMSTREAMS ]; do
+    while [ $i -le $1 ]; do
         query_file="$RUNDIR/throughput_query$i"
         tmp_query_file="$RUNDIR/tmp_throughput_query$i.sql"
         param_file="$RUNDIR/throughput_param$i"
