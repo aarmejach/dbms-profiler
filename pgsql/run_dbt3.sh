@@ -41,10 +41,9 @@ fi
 
 for NUMSTREAMS in ${STREAMS}; do
 
-    RESULTS=${RESULTS}/${NUMSTREAMS}streams
-    mkdir -p $RESULTS
-    cd $RESULTS
-    RUNDIR=$RESULTS/run
+    mkdir -p ${RESULTS}/${NUMSTREAMS}streams
+    cd ${RESULTS}/${NUMSTREAMS}streams
+    RUNDIR=${RESULTS}/${NUMSTREAMS}streams/run
     mkdir -p $RUNDIR
 
     # Create stream files
@@ -125,6 +124,7 @@ for NUMSTREAMS in ${STREAMS}; do
             done
         fi
     fi
+
 done
 
 if [ "$SIMULATOR" = false ]; then
