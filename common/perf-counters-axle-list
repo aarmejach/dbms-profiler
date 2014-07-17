@@ -13,8 +13,8 @@
 #r0280 80H 02H Number of ICache, Streaming Buffer and Victim Cache Misses. L1_ICM / L2 I accesses
 #r4F2E 2EH 4FH Requests originating from the core that reference a cache line in the LLC. L2_TCM
 #r2024 24H 20H Number of instruction fetches that missed the L2 cache. L2_ICM
-#r1024 24H 10H Number of instruction fetches that hit the L2 cache. L2 I hits
-#r3024 24H 30H Counts all L2 code requests - instr. Sum of the 2 above?
+###r1024 24H 10H Number of instruction fetches that hit the L2 cache. L2 I hits
+###r3024 24H 30H Counts all L2 code requests - instr. Sum of the 2 above?
 #r412E 2EH 41H Counts each cache miss condition for references LLC. LLC_TCM
 
 ### Branch Prediction
@@ -24,17 +24,17 @@
 ### Stalls Memory
 #r0408 08H 04H Cycle PMH is busy with a walk for DTLB load misses.
 #r0485 85H 04H Cycle PMH is busy with a walk for ITLB.
-#r02A3 A3H 02H Cycles with pending L1D cache miss loads.
-#r01A3 A3H 01H Cycles with pending L2 miss loads.
+###r02A3 A3H 02H Cycles with pending L1D cache miss loads.
+###r01A3 A3H 01H Cycles with pending L2 miss loads.
 #r1530860 60H 08H Cycles with offcore outstanding cacheable data read transactions in the superQ.
 #r1530260 60H 02H Cycles with demand code reads transactions in the superQ
 
 ### Stalls CPU
-#r0C5B 5BH 0CH Cycles stalled due to free list empty.
-#r0F5B 5BH 0FH Cycles stalled due to control structures full for physical registers.
-#r405B 5BH 40H Cycles Allocator is stalled due Branch Order Buffer is full.
-#r4F5B 5BH 4FH Cycles stalled due to out of order resources full. (ROB?)
-#r0487 87H 04H Stall cycles due to IQ is full. Cycles with no instr. issue
+###r0C5B 5BH 0CH Cycles stalled due to free list empty.
+###r0F5B 5BH 0FH Cycles stalled due to control structures full for physical registers.
+###r405B 5BH 40H Cycles Allocator is stalled due Branch Order Buffer is full.
+###r4F5B 5BH 4FH Cycles stalled due to out of order resources full. (ROB?)
+###r0487 87H 04H Stall cycles due to IQ is full. Cycles with no instr. issue
 #r02A2 A2H 02H Counts the cycles of stall due to lack of load buffers.
 #r04A2 A2H 04H Cycles stalled due to no eligible RS entry available.
 #r08A2 A2H 08H Cycles stalled due to no store buffers available.

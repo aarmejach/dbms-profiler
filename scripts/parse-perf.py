@@ -176,22 +176,22 @@ def _main():
   #add_counter(counters, results, 'prcnt_cycles_pending_l2_miss',
                 #'% cycles with a pending L2 load miss', '( $1a3 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_pending_l2d_miss',
-                '% cycles with an outstanding L2 miss request (i or d)', '( $1530860 / $total_cycles ) * 100')
+                '% cycles with an outstanding L2 data miss request', '( $1530860 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_pending_l2i_miss',
                 '% cycles instruction stalls on l2', '( $1530260 / $total_cycles ) * 100')
                 #'% cycles instruction stalls on l2', '( ( ( 6 / 40 ) * ( $1024 / $2024 * $1530260 ) ) / $total_cycles ) * 100')
 
   # Stalls core
-  add_counter(counters, results, 'prcnt_cycles_empty_freelist',
-                '% cycles stalled free list empty', '( $c5b / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_full_pregisters',
-                '% cycles stalled control structures full for physical registers',
-                '( $f5b / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_full_branchorderbuffer',
-                '% cycles allocator stalled full branch order buffer',
-                '( $405b / $total_cycles ) * 100')
-  add_counter(counters, results, 'prcnt_cycles_full_oooresources',
-                '% cycles stalled full OOO resources', '( $4f5b / $total_cycles ) * 100')
+  #add_counter(counters, results, 'prcnt_cycles_empty_freelist',
+                #'% cycles stalled free list empty', '( $c5b / $total_cycles ) * 100')
+  #add_counter(counters, results, 'prcnt_cycles_full_pregisters',
+                #'% cycles stalled control structures full for physical registers',
+                #'( $f5b / $total_cycles ) * 100')
+  #add_counter(counters, results, 'prcnt_cycles_full_branchorderbuffer',
+                #'% cycles allocator stalled full branch order buffer',
+                #'( $405b / $total_cycles ) * 100')
+  #add_counter(counters, results, 'prcnt_cycles_full_oooresources',
+                #'% cycles stalled full OOO resources', '( $4f5b / $total_cycles ) * 100')
   #add_counter(counters, results, 'prcnt_cycles_full_iq',
                 #'% cycles stalled full instructuion queue - no issue', '( $487 / $total_cycles ) * 100')
   add_counter(counters, results, 'prcnt_cycles_full_lb',
