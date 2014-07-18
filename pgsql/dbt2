@@ -1,21 +1,38 @@
-# Configuration file for the DBT2 benchmark on pgsql
-SCALE=10
-DBT2TMP=/AXLE/$USER/dbt2_tmp
-DATADIR=/AXLE/$USER/pgdata${SCALE}w-dbt2
+# Configuration file for the DBT3 benchmark on pgsql
+
+MEMORY_MB=`vmstat -s -S M | grep "total memory" | tr -d ' ' | cut -d"M" -f1`
+MEMORY_10PRCT=$(( $MEMORY_MB / 10 ))
+MEMORY_75PRCT=$(( $MEMORY_MB * 3 / 4 ))
+MEMORY_25PRCT=$(( $MEMORY_MB / 4 ))
+
+# Data folders, assume DB is already created
+DBT2TMP=/AXLE/$USER/tmp_${BENCHMARK}_${SCALE}
+DATADIR=/AXLE/$USER/pgdata${SCALE}WH-$BENCHMARK
+#DBT2TMP=/$BASEDIR/data/tmp_${BENCHMARK}_${SCALE}
+#DATADIR=/$BASEDIR/data/pgdata${SCALE}WH-$BENCHMARK
+
+# Postgres general
 PORT=5442
-DB_NAME="dbt2"
 CORES=`grep -c ^processor /proc/cpuinfo`
 PGUSER="nobody"
-PGBINDIR=$HOME/bin/postgres-bs8/bin
-RESULTS=$BASEDIR/results$RESULTSDIR_APPEND/$DATABASE/$bench/$SCALE
-QUERIESDIR=$BASEDIR/queries/$DATABASE/$bench/$SCALE
-BENCHDIR=$BASEDIR/benchmarks/dbt2
+PGBINDIR=$PGPATH/build/bin
+DB_NAME=$BENCHMARK
 USE_PGPOOL=0
-CLIENTS=32
-DURATION=60
 
-export DBT2PGDATA=$DATADIR
-export PORT
-export DBT2DBNAME=$DB_NAME
-export USE_PGPOOL
-export PATH=$PATH:$BENCHDIR/bin:$BENCHDIR/bin/pgsql
+# Postgres configuration
+CHECKPOINT_TIMEOUT=600s
+WORK_MEM=128MB
+EFFECTIVE_CACHE=${MEMORY_75PRCT}MB
+SHARED_BUFFERS=$(( ${MEMORY_25PRCT} > 49152 ? 49152 : ${MEMORY_25PRCT} ))MB
+STATISTICS_TARGET=5000
+MAINTAINANCE_MEM=128MB
+
+# Benchmark configuration
+CLIENTS="16 32"
+DURATION=60
+BENCHDIR=$BASEDIR/benchmarks/dbt2
+RESULTS=$RESULTSDIR$RESULTSDIR_APPEND/$DATABASE/$BENCHMARK/$SCALE/
+
+# Simulator
+PGSIMCONFIG=$ZSIMPATH/tests/sandy-postgres-template.cfg
+PGSIMSCRIPT=$BASEDIR/pgsql/run_dbt2_sim.sh
