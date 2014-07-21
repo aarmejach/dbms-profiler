@@ -38,73 +38,6 @@ make_directories()
 	${COMMAND} mkdir -p ${DB_OUTPUT_DIR}
 }
 
-oprofile_annotate()
-{
-	COMMAND=""
-	DIR=${1}
-	HOST=${2}
-	OPROFILE_DIR=${DIR}/oprofile
-	ANNOTATED_DIR=${OPROFILE_DIR}/annotated
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "oprofile is annotating source: ${HOST}"
-	${COMMAND} mkdir -p ${OPROFILE_DIR}
-	${COMMAND} mkdir -p ${ANNOTATED_DIR}
-	if [ -n "${COMMAND}" ]; then
-		${COMMAND} "sudo opannotate --source \
-				--assembly > ${OPROFILE_DIR}/assembly.txt 2>&1"
-	else
-		sudo opannotate --source --assembly > ${OPROFILE_DIR}/assembly.txt 2>&1
-	fi
-	${COMMAND} sudo opannotate --source --output-dir=${ANNOTATED_DIR}
-	IAM=`whoami`
-	${COMMAND} sudo chown -R ${IAM} ${OPROFILE_DIR}
-}
-
-oprofile_collect()
-{
-	COMMAND=""
-	DIR=${1}
-	HOST=${2}
-	OPROFILE_DIR=${DIR}/oprofile
-	ANNOTATED_DIR=${OPROFILE_DIR}/annotated
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	mkdir -p ${OPROFILE_DIR}
-	mkdir -p ${ANNOTATED_DIR}
-	#
-	# I don't think we need any output dumped to the terminal.
-	#
-	echo "oprofile is dumping data: ${HOST}"
-	${COMMAND} sudo opcontrol --dump
-	if [ -n "${COMMAND}" ]; then
-		${COMMAND} mkdir -p ${OPROFILE_DIR}
-		${COMMAND} mkdir -p ${ANNOTATED_DIR}
-		echo "Generating oprofile profile on '${HOST}'..."
-		${COMMAND} "sudo opreport -l -p /lib/modules/`${COMMAND} uname -r` -o ${DIR}/oprofile.txt > ${OPROFILE_DIR}/oprofile.log 2>&1"
-		echo "Generating oprofile callgraph on '${HOST}'..."
-		${COMMAND} "sudo opreport -l -c -p /lib/modules/`${COMMAND} uname -r` -o ${OPROFILE_DIR}/callgraph.txt > ${OPROFILE_DIR}/oprofile.log 2>&1"
-	else
-		echo "Generating oprofile profile..."
-		sudo opreport -l -p /lib/modules/`uname -r` \
-				-o ${OPROFILE_DIR}/oprofile.txt > \
-				${OPROFILE_DIR}/oprofile.log 2>&1
-		echo "Generating oprofile callgraph..."
-		sudo opreport -l -c -p /lib/modules/`uname -r` \
-				-o ${OPROFILE_DIR}/callgraph.txt > \
-				${OPROFILE_DIR}/oprofile.log 2>&1
-	fi
-	${COMMAND} sudo opcontrol --stop
-	IAM=`whoami`
-	${COMMAND} sudo chown -R ${IAM} ${OPROFILE_DIR}
-}
-
 perf_stat_start()
 {
 	COMMAND=""
@@ -118,7 +51,7 @@ perf_stat_start()
 		HOST=`hostname`
 	fi
 
-	${COMMAND} LC_NUMERIC=C perf stat --append -o $PERF_DIR/perf-stats.csv \
+	LC_NUMERIC=C perf stat --append -o $PERF_DIR/perf-stats.csv \
         -r 1 -e $COUNTERS -a -x "," -- sleep ${DURATION}
 }
 
@@ -134,126 +67,7 @@ perf_record_start()
 		HOST=`hostname`
 	fi
 
-	${COMMAND} perf record -a -s -g -m 512 -- sleep ${DURATION}
-}
-
-oprofile_init()
-{
-	COMMAND=""
-	HOST=${1}
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "starting oprofile: ${HOST}"
-	${COMMAND} sudo opcontrol \
-			--vmlinux=/lib/modules/`${COMMAND} uname -r`/vmlinux \
-			-c 100
-	sleep 1
-	START_ARGS=""
-	MACHINE=`${COMMAND} uname -m`
-	if [ "${MACHINE}" = "ppc64" ]; then
-		#
-		# Oprofile fails to work on ppc64 because the defaults settings
-		# are invalid on this platform.  Why isn't it smart enough to
-		# have valid default setting depending on arch?
-		#
-		START_ARGS="-e CYCLES:150000:0:1:1"
-	fi
-	${COMMAND} sudo opcontrol --start-daemon ${START_ARGS}
-	sleep 1
-	${COMMAND} sudo opcontrol --start
-}
-
-oprofile_reset()
-{
-	COMMAND=""
-	HOST=${1}
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "resetting oprofile counters: ${HOST}"
-	${COMMAND} sudo opcontrol --reset
-}
-
-oprofile_stop()
-{
-	COMMAND=""
-	HOST=${1}
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "stopping oprofile daemon: ${HOST}"
-	${COMMAND} sudo opcontrol --shutdown
-}
-
-post_process_sar()
-{
-	COMMAND=""
-	FILE=${1}
-	HOST=${2}
-	if [ ! "x${HOST}" = "x" ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		COMMAND="ssh ${HOST}"
-		${COMMAND} "which sar > /dev/null" 2>&1
-		if [ $? -eq 0 ]; then
-			SAR=sar
-		else
-			SAR=true
-		fi
-		${COMMAND} "${SAR} -f ${FILE} -A > `dirname ${FILE}`/sar.out"
-	else
-		which sar > /dev/null 2>&1
-		if [ $? -eq 0 ]; then
-			SAR=sar
-		else
-			SAR=true
-		fi
-		${SAR} -f ${FILE} -A > `dirname ${FILE}`/sar.out
-	fi
-}
-
-readprofile_collect()
-{
-	COMMAND=""
-	DIR=${1}
-	HOST=${2}
-	RP_DIR=${DIR}/readprofile
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "collecting readprofile data: ${HOST}"
-	PROFILE=${RP_DIR}/readprofile.txt
-	if [ -n "${COMMAND}" ]; then
-		${COMMAND} mkdir -p ${RP_DIR}
-		${COMMAND} "/usr/sbin/readprofile -n -m /boot/System.map-`${COMMAND} uname -r` > ${PROFILE}"
-		${COMMAND} "cat ${PROFILE} | sort -n -r -k1 > ${RP_DIR}/readprofile_ticks.txt"
-		${COMMAND} "cat ${PROFILE} | sort -n -r -k3 > ${RP_DIR}/readprofile_load.txt"
-	else
-		mkdir -p ${RP_DIR}
-		/usr/sbin/readprofile -n -m /boot/System.map-`uname -r` > ${PROFILE}
-		cat ${PROFILE} | sort -n -r -k1 > ${RP_DIR}/readprofile_ticks.txt
-		cat ${PROFILE} | sort -n -r -k3 > ${RP_DIR}/readprofile_load.txt
-	fi
-}
-
-readprofile_clear()
-{
-	COMMAND=""
-	HOST=${1}
-	if [ -n "${HOST}" ]; then
-		COMMAND="ssh ${HOST}"
-	else
-		HOST=`hostname`
-	fi
-	echo "clearing readprofile data: ${HOST}"
-	${COMMAND} sudo /usr/sbin/readprofile -r
+	perf record -a -s -g -m 512 -- sleep ${DURATION}
 }
 
 usage()
@@ -315,7 +129,7 @@ USE_PERF_RECORD=0
 THREADS_PER_WAREHOUSE=10
 USE_PGPOOL=0
 
-while getopts "a:b:c:D:d:H:NS:hi:l:no:p:qS:s:t:u:w:x:z:perfstat:perfrecord" opt; do
+while getopts "a:b:c:D:d:H:NS:hi:l:no:qS:s:t:u:w:x:z:p:r" opt; do
 	case $opt in
 	a)
 		DBMS=${OPTARG}
@@ -364,10 +178,6 @@ while getopts "a:b:c:D:d:H:NS:hi:l:no:p:qS:s:t:u:w:x:z:perfstat:perfrecord" opt;
 	o)
 		OUTPUT_DIR=${OPTARG}
 		;;
-	p)
-		DB_PARAMS="${OPTARG}"
-		DB_PARAMS_ARG="-p \"${OPTARG}\""
-		;;
 	q)
 		USE_OPROFILE=1
 		;;
@@ -396,11 +206,11 @@ while getopts "a:b:c:D:d:H:NS:hi:l:no:p:qS:s:t:u:w:x:z:perfstat:perfrecord" opt;
 	z)
 		COMMENT=$OPTARG
 		;;
-        perfstat)
+        p)
                 USE_PERF_STAT=1
                 COUNTERS=${OPTARG}
                 ;;
-        perfrecord)
+        r)
                 USE_PERF_RECORD=1
                 ;;
 	esac
@@ -481,20 +291,6 @@ REPORT_FILE="${OUTPUT_DIR}/report.txt"
 #
 make_directories
 
-if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-	#
-	# Create direcotires on the database server if specified.
-	#
-	make_directories ${DB_HOSTNAME}
-	#
-	# We want to sync everything with the system executing this script so
-	# use rsync to delete any files that may be on the database system but
-	# only in the database output directory.
-	#
-	rsync -a -e "ssh" --delete ${DB_OUTPUT_DIR}/ \
-			${DB_HOSTNAME}:${DB_OUTPUT_DIR}/
-fi
-
 # Create a readme file in the output directory and date it.
 date >> ${OUTPUT_DIR}/readme.txt
 echo "$COMMENT" >> ${OUTPUT_DIR}/readme.txt
@@ -505,43 +301,6 @@ echo "Command line: $0 $@" >> ${OUTPUT_DIR}/readme.txt
 echo "Database Scale Factor: $WAREHOUSES warehouses" >> ${OUTPUT_DIR}/readme.txt
 echo "Test Duration: $DURATION seconds" >> ${OUTPUT_DIR}/readme.txt
 echo "Database Connections: $DBCON" >> ${OUTPUT_DIR}/readme.txt
-
-# Get any OS specific information, if this is a single trier test, then
-# the OS parameters will be in the database output directory.
-if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-	dbt2-get-os-info -o ${DRIVER_OUTPUT_DIR}/`hostname`/
-	DB_COMMAND="ssh ${DB_HOSTNAME}"
-	# Get the OS information from the database system.
-	${DB_COMMAND} dbt2-get-os-info -o ${DB_OUTPUT_DIR}
-	${DB_COMMAND} "uname -a >> ${DB_OUTPUT_DIR}/readme.txt"
-else
-	dbt2-get-os-info -o ${DB_OUTPUT_DIR}
-fi
-
-if [ ! ${DB_MGMT_OFF} ]; then
-
-	echo "Try to manage database: ${DB_MGMT_OFF}"
-
-	if [ "x${DB_COMMAND}" = "x" ]; then
-		dbt2-${DBMS}-stop-db ${MISC_ARG}
-	else
-		${DB_COMMAND} "dbt2-${DBMS}-stop-db ${MISC_ARG}"
-	fi
-	if [ $? -ne 0 ]; then
-		echo "cleaning up results..."
-		rm -rf ${OUTPUT_DIR}
-		exit 1
-	fi
-
-	if [ "x${DB_COMMAND}" = "x" ]; then
-		eval dbt2-${DBMS}-start-db ${DB_PARAMS_ARG} ${MISC_ARG} \
-			-o ${DB_OUTPUT_DIR} || exit 1
-	else
-		${DB_COMMAND} "dbt2-${DBMS}-start-db ${DB_PARAMS_ARG} ${MISC_ARG} \
-			-o ${DB_OUTPUT_DIR}" || exit 1
-	fi
-
-fi
 
 #
 # Redisplay the test parameters.
@@ -600,22 +359,6 @@ if [ ${DBMS} = "pgsql" ]; then
 		TMP_DB_HOSTNAME=${DB_HOSTNAME}
 	fi
 	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -d ${TMP_DB_HOSTNAME}"
-elif [ ${DBMS} = "mysql" ]; then
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -d ${DBNAME}"
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} ${SOCK_FILE_ARG}"
-
-	if [ -n "${SOCK_FILE_ARG}" -a -z "${DB_USER}" ]; then
-		CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -u root"
-	fi
-	
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -h ${DB_HOSTNAME}"
-elif [ ${DBMS} = "nuodb" ]; then
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -d ${DBNAME}"
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -h ${DB_HOSTNAME}"
-elif [ ${DBMS} = "sqlite" ]; then
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -d ${DB_PARAMS}"
-elif [ ${DBMS} = "drizzle" ]; then
-	CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -h ${DB_HOSTNAME} -d ${DBNAME} -u root"
 fi
 CLIENT_COMMAND_ARGS="${CLIENT_COMMAND_ARGS} -f -c ${DBCON} -s ${SLEEPY}"
 END=0
@@ -637,13 +380,13 @@ while [ ${END} -lt ${WAREHOUSES} ]; do
 
 	CDIR="${CLIENT_OUTPUT_DIR}/`hostname`.${SEG}"
 	mkdir -p ${CDIR}
-	dbt2-client ${CLIENT_COMMAND_ARGS} -p ${PORT} -o ${CDIR} > \
+	$bin_dir/dbt2-client ${CLIENT_COMMAND_ARGS} -p ${PORT} -o ${CDIR} > \
 			${CLIENT_OUTPUT_DIR}/`hostname`/client-${SEG}.out 2>&1 || exit 1 &
 	PORT=`expr ${PORT} + 1`
 done
 
 # Sleep long enough for all the client database connections to be established.
-SLEEPYTIME=${W_CHUNK}
+SLEEPYTIME=${DBCON}
 SLEEPYTIME=`expr ${SLEEPYTIME} \* ${SLEEPY}`
 SLEEPYTIME=`expr ${SLEEPYTIME} / 1000`
 SLEEPYTIME=`expr ${SLEEPYTIME} + 1`
@@ -654,36 +397,6 @@ SLEEP_RAMPUP=`expr ${W_CHUNK} + 1`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} \* 10`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} \* ${SLEEPY}`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} / 1000`
-SLEEPYTIME=`expr ${SLEEP_RAMPUP} + ${DURATION}`
-SAMPLE_LENGTH=60
-ITERATIONS=`expr ${SLEEPYTIME} / ${SAMPLE_LENGTH}`
-ITERATIONS=`expr ${ITERATIONS} + 1`
-if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-	dbt2-sysstats \
-			--iter ${ITERATIONS} \
-			--sample ${SAMPLE_LENGTH} \
-			--outdir ${DRIVER_OUTPUT_DIR}/`hostname` > ${DRIVER_OUTPUT_DIR}/`hostname`/stats.out 2>&1 &
-
-	${DB_COMMAND} "dbt2-sysstats --iter ${ITERATIONS} --sample ${SAMPLE_LENGTH} --outdir ${DB_OUTPUT_DIR} > ${DB_OUTPUT_DIR}/stats.out 2>&1" &
-else
-	dbt2-sysstats \
-			--iter ${ITERATIONS} \
-			--sample ${SAMPLE_LENGTH} \
-			--outdir ${DB_OUTPUT_DIR}/`hostname` > ${DRIVER_OUTPUT_DIR}/`hostname`/stats.out 2>&1 &
-fi
-
-echo "collecting database statistics..."
-${DB_COMMAND} dbt2-${DBMS}-db-stat \
-		-o ${DB_OUTPUT_DIR} -i ${ITERATIONS} -s ${SAMPLE_LENGTH} \
-		${DB_PORT_ARG} > ${DB_OUTPUT_DIR}/dbstats.out 2>&1 &
-
-# Initialize oprofile before we start the driver.
-if [ ${USE_OPROFILE} -eq 1 ]; then
-	oprofile_init
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		oprofile_init ${DB_HOSTNAME}
-	fi
-fi
 
 # Start the driver.
 echo ''
@@ -711,29 +424,13 @@ while [ ${END} -lt ${WAREHOUSES} ]; do
 	mkdir -p ${DDIR}
 	DRIVER_COMMAND_ARGS="-d ${CLIENT_HOSTNAME} -p ${PORT} -l ${DURATION} -wmin ${START} -wmax ${END} -w ${WAREHOUSES} -sleep ${SLEEPY} -outdir ${DDIR} -tpw ${THREADS_PER_WAREHOUSE} ${NO_THINK}"
 	PORT=`expr ${PORT} + 1`
-	dbt2-driver ${DRIVER_COMMAND_ARGS} > \
+	$bin_dir/dbt2-driver ${DRIVER_COMMAND_ARGS} > \
 			${DRIVER_OUTPUT_DIR}/`hostname`/driver-${SEG}.out 2>&1 || exit 1&
 done
 
 echo -n "estimated rampup time: "
 do_sleep $SLEEP_RAMPUP
 echo "estimated rampup time has elapsed"
-
-# Clear the readprofile data after the driver ramps up.
-if [ -f "/proc/profile" ]; then
-	readprofile_clear
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		readprofile_clear ${DB_HOSTNAME}
-	fi
-fi
-
-# Reset the oprofile counters after the driver ramps up.
-if [ ${USE_OPROFILE} -eq 1 ]; then
-	oprofile_reset
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		oprofile_reset ${DB_HOSTNAME}
-	fi
-fi
 
 # Start perf stat
 if [ ${USE_PERF_STAT} -eq 1 ]; then
@@ -755,22 +452,6 @@ fi
 echo -n "estimated steady state time: "
 do_sleep $DURATION
 
-# Collect readprofile data.
-if [ -f "/proc/profile" ]; then
-	readprofile_collect ${DRIVER_OUTPUT_DIR}/`hostname`
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		readprofile_collect ${DB_OUTPUT_DIR} ${DB_HOSTNAME}
-	fi
-fi
-
-# Collect oprofile data.
-if [ ${USE_OPROFILE} -eq 1 ]; then
-	oprofile_collect ${OUTPUT_DIR}
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		oprofile_collect ${DB_OUTPUT_DIR} ${DB_HOSTNAME}
-	fi
-fi
-
 echo ''
 echo "Stage 3. Processing of results..."
 
@@ -778,19 +459,19 @@ echo "Stage 3. Processing of results..."
 echo "Killing client..."
 killall dbt2-client dbt2-driver 2> /dev/null
 
-if [ ! ${DB_MGMT_OFF} ]; then
+#if [ ! ${DB_MGMT_OFF} ]; then
 
-	if [ "x${DB_COMMAND}" = "x" ]; then
-		dbt2-${DBMS}-stop-db ${MISC_ARG}
-	else
-		${DB_COMMAND} "dbt2-${DBMS}-stop-db ${MISC_ARG}"
-	fi
-	if [ ${DBMS} = "pgsql" ]; then
-		if [ ${USE_PGPOOL} -eq 1 ]; then
-			pgpool -f ${DIR}/pgsql/pgpool.conf stop
-		fi
-	fi
-fi
+	#if [ "x${DB_COMMAND}" = "x" ]; then
+		#dbt2-${DBMS}-stop-db ${MISC_ARG}
+	#else
+		#${DB_COMMAND} "dbt2-${DBMS}-stop-db ${MISC_ARG}"
+	#fi
+	#if [ ${DBMS} = "pgsql" ]; then
+		#if [ ${USE_PGPOOL} -eq 1 ]; then
+			#pgpool -f ${DIR}/pgsql/pgpool.conf stop
+		#fi
+	#fi
+#fi
 
 # Run some post processing analysese.
 MIXAGG="${OUTPUT_DIR}/mix.log"
@@ -798,37 +479,7 @@ MIXAGG="${OUTPUT_DIR}/mix.log"
 # single location to be ananlyzed.
 find ${DRIVER_OUTPUT_DIR} -name mix.log | xargs cat | \
 		sort -t ',' -k 1 > ${MIXAGG}
-dbt2-post-process ${MIXAGG} > ${REPORT_FILE}
-
-if [ ${USE_OPROFILE} -eq 1 ]; then
-	oprofile_annotate ${OUTPUT_DIR} &
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		oprofile_annotate ${DB_OUTPUT_DIR} ${DB_HOSTNAME} &
-	fi
-	wait
-fi
-
-if [ ${USE_OPROFILE} -eq 1 ]; then
-	oprofile_stop
-	if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-		oprofile_stop ${DB_HOSTNAME}
-	fi
-fi
-
-# Post processing of Database Statistics
-if [ -n ${DB_HOSTNAME} ] && [ ! "x${DB_HOSTNAME}" = "xlocalhost" ]; then
-	#
-	# If a database system is specified, rsync all the logs back to here.
-	#
-	rsync -a -e "ssh" --delete ${DB_HOSTNAME}:${DB_OUTPUT_DIR}/ \
-			${DB_OUTPUT_DIR}/
-	post_process_sar ${DRIVER_OUTPUT_DIR}/`hostname`/sar_raw.out
-	# There will only be a sar output file if the database is on a separate
-	# system.
-	post_process_sar ${DB_OUTPUT_DIR}/sar_raw.out ${DB_HOSTNAME}
-else
-	post_process_sar ${DB_OUTPUT_DIR}/`hostname`/sar_raw.out
-fi
+$bin_dir/dbt2-post-process ${MIXAGG} > ${REPORT_FILE}
 
 # Change the permissions on the database error log, not readable by other
 # users by default.

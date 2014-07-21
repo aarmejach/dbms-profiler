@@ -4,42 +4,69 @@
 # Check if postgres is running
 source "$BASEDIR/$DATABASE/common.sh"
 
-# Start the database
-sudo -u $PGUSER env PATH=$PATH dbt2-pgsql-start-db
+# Check if pgsql port is free
+#do_check_port
 
-if [ "$STAT" = false ]; then
-    # Execute with perf record
-    sudo -u $PGUSER env PATH=$PATH dbt2-run-workload -a $DATABASE -d $DURATION\
-            -w $SCALE -o $RESULTS -c $CLIENTS -l $PORT -n\
-            -u $DB_NAME -perfrecord
+# Check if pgsql already running in datadir
+#do_check_datadir
 
-else
-    # Execute with perf stat
-    # Get the performance counters array
-    source "$BASEDIR/common/perf-counters-axle.sh"
-    for counter in "${array[@]}"; do
-        echo "Running dbt2 for counters $counter."
-        
-        # Get a fresh copy of the database
-        sudo -u $PGUSER rm -r $DATADIR
-        sudo -u $PGUSER cp -a $DATADIR-template $DATADIR
-        
-        sudo -u $PGUSER env PATH=$PATH dbt2-run-workload -a $DATABASE -d $DURATION\
-            -w $SCALE -o $RESULTS/$counter -c $CLIENTS -l $PORT -n\
-            -u $DB_NAME -perfstat $counter
-    done
-fi
+# Start Postgres server
+#do_start_postgres
 
-echo "Stop the postgres server"
-sudo -u $PGUSER env PATH=$PATH dbt2-psql-stop-db
+mkdir -p $RESULTS
+cd $RESULTS
+
+for CLIENTS in $CLIENTSLIST; do
+    mkdir -p ${RESULTS}/$CLIENTS
+    cd ${RESULTS}/$CLIENTS
+
+    ORIGDATADIR=$DATADIR
+    if [ "$STAT" = false ]; then
+        # Execute with perf record
+	echo "Running DBT-2 with perf record"
+	# Get a fresh copy of the database
+	cp -a $ORIGDATADIR $ORIGDATADIR-record
+	DATADIR=$ORIGDATADIR-record
+	do_start_postgres
+        $BENCHDIR/bin/dbt2-run-workload -a $DATABASE -d $DURATION\
+             -w $SCALE -o $RESULTS/$CLIENTS/record -c $CLIENTS -l $PORT -n -N -r
+	do_stop_postgres
+	rm -r $DATADIR
+    else
+        # Execute with perf stat
+        source "$BASEDIR/common/perf-counters-axle.sh"
+        for counter in "${array[@]}"; do
+	    echo "Running dbt2 for counters $counter."
+
+	    # Get a fresh copy of the database
+	    cp -a $ORIGDATADIR $ORIGDATADIR-$counter
+	    DATADIR=$ORIGDATADIR-$counter
+	    do_start_postgres
+
+	    ${BENCHDIR}/bin/dbt2-run-workload -a $DATABASE -d $DURATION\
+		 -w $SCALE -o $RESULTS/$CLIENTS/$counter -c $CLIENTS -l $PORT -n -N\
+	         -p $counter
+
+	    do_stop_postgres
+	    rm -r $DATADIR
+        done
+    fi
+    DATADIR=$ORIGDATADIR
+done
+
+#echo "Stop the postgres server"
+#sudo -u $PGUSER env PATH=$PATH dbt2-psql-stop-db
 
 # Generate callgraphs
 if [ "$STAT" = false ]; then
     cd $RESULTS
+    for CLIENTS in $CLIENTSLIST; do
+	cd $CLIENTS/record
 
-    cgf="callgraph.pdf"
-    echo "Creating the call graph: $cgf"
-    perf script | python "$BASEDIR/gprof2dot.py" -f perf | dot -Tpdf -o $cgf 
+        cgf="callgraph.pdf"
+	echo "Creating the call graph: $cgf"
+	perf script | python "$BASEDIR/gprof2dot.py" -f perf | dot -Tpdf -o $cgf
 
-    cd - >/dev/null
+	cd - >/dev/null
+    done
 fi
