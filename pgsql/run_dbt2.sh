@@ -13,6 +13,15 @@ source "$BASEDIR/$DATABASE/common.sh"
 # Start Postgres server
 #do_start_postgres
 
+# Prepare benchmark
+cd $BENCHDIR
+cmake -G "Unix Makefiles" -DDBMS=pgsql -DCMAKE_BUILD_TYPE=Debug
+make
+
+cd ${BENCHDIR}/storedproc/pgsql/c
+make
+make install #to postgres shared folder
+
 mkdir -p $RESULTS
 cd $RESULTS
 
@@ -28,8 +37,10 @@ for CLIENTS in $CLIENTSLIST; do
 	cp -a $ORIGDATADIR $ORIGDATADIR-record
 	DATADIR=$ORIGDATADIR-record
 	do_start_postgres
+	# Warmup
+	cat $DATADIR/base/*/* > /dev/null
         $BENCHDIR/bin/dbt2-run-workload -a $DATABASE -d $DURATION\
-             -w $SCALE -o $RESULTS/$CLIENTS/record -c $CLIENTS -l $PORT -n -N -r
+             -w $SCALE -o $RESULTS/$CLIENTS/record -c $CLIENTS -l $PORT -n -N -i $PGPID -r
 	do_stop_postgres
 	rm -r $DATADIR
     else
@@ -43,8 +54,11 @@ for CLIENTS in $CLIENTSLIST; do
 	    DATADIR=$ORIGDATADIR-$counter
 	    do_start_postgres
 
+	    # Warmup
+	    cat $DATADIR/base/*/* > /dev/null
+
 	    ${BENCHDIR}/bin/dbt2-run-workload -a $DATABASE -d $DURATION\
-		 -w $SCALE -o $RESULTS/$CLIENTS/$counter -c $CLIENTS -l $PORT -n -N\
+		 -w $SCALE -o $RESULTS/$CLIENTS/$counter -c $CLIENTS -l $PORT -n -N -i $PGPID\
 	         -p $counter
 
 	    do_stop_postgres
