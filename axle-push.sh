@@ -15,7 +15,7 @@ rsync -aP --delete --exclude 'results*' --exclude 'data' --exclude 'figures' --e
 rsync -aP --delete --exclude 'build' --exclude '.git' $PGPATH $SERVER_DIR/
 
 #zsim
-rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/.git' --exclude 'nvmain/.hg' $ZSIMPATH $SERVER_DIR/
+rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/.git' --exclude 'nvmain/.hg' --exclude 'results' $ZSIMPATH $SERVER_DIR/
 
 #install
 scp axle-install.sh $SERVER_DIR
