@@ -51,8 +51,8 @@ perf_stat_start()
 		HOST=`hostname`
 	fi
 
-	LC_NUMERIC=C perf stat --append -o $PERF_DIR/perf-stats.csv \
-        -r 1 -e $COUNTERS -a -x "," -- sleep ${DURATION}
+	LC_NUMERIC=C perf stat -r 1 -e $COUNTERS -a -C 0-7 -x ","\
+            -- sleep ${DURATION} 2>> $PERF_DIR/perf-stats.csv
 }
 
 perf_record_start()
@@ -67,7 +67,7 @@ perf_record_start()
 		HOST=`hostname`
 	fi
 
-	perf record -a -s -g -m 512 -- sleep ${DURATION}
+	perf record -a -C 0-7 -s -g -m 512 -- sleep ${DURATION}
 }
 
 usage()
@@ -162,12 +162,6 @@ while getopts "a:b:c:D:d:H:NS:hi:l:no:qS:s:t:u:w:x:z:p:r" opt; do
 		usage
 		exit 1
 		;;
-	i)
-		# installation or working directory where drizzled and drizzle can be
-		# found
-		WORKING_DIR=${OPTARG}
-		MISC_ARG="${MISC_ARG} -w ${WORKING_DIR}"
-		;;
 	l)
 		DB_PORT=`echo $OPTARG | egrep "^[0-9]+$"`
 		validate_parameter $opt $OPTARG $DB_PORT
@@ -212,6 +206,9 @@ while getopts "a:b:c:D:d:H:NS:hi:l:no:qS:s:t:u:w:x:z:p:r" opt; do
                 ;;
         r)
                 USE_PERF_RECORD=1
+                ;;
+        i)
+                PGPID=${OPTARG}
                 ;;
 	esac
 done
@@ -389,11 +386,11 @@ done
 SLEEPYTIME=${DBCON}
 SLEEPYTIME=`expr ${SLEEPYTIME} \* ${SLEEPY}`
 SLEEPYTIME=`expr ${SLEEPYTIME} / 1000`
-SLEEPYTIME=`expr ${SLEEPYTIME} + 1`
+SLEEPYTIME=`expr ${SLEEPYTIME} + 5`
 do_sleep ${SLEEPYTIME}
 
 # Start collecting data before we start the test.
-SLEEP_RAMPUP=`expr ${W_CHUNK} + 1`
+SLEEP_RAMPUP=`expr ${W_CHUNK} - 1`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} \* 10`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} \* ${SLEEPY}`
 SLEEP_RAMPUP=`expr ${SLEEP_RAMPUP} / 1000`
@@ -454,6 +451,7 @@ do_sleep $DURATION
 
 echo ''
 echo "Stage 3. Processing of results..."
+do_sleep 10
 
 # Client doesn't go away by itself like the driver does, so kill it.
 echo "Killing client..."
