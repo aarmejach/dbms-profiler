@@ -98,6 +98,7 @@ do_start_postgres(){
         echo "Waiting for the Postgres server to start"
         sleep 2
     done
+    sleep 2
 }
 
 do_stop_postgres(){
