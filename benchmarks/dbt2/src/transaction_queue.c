@@ -40,7 +40,7 @@ pthread_mutex_t mutex_transaction_counter[2][TRANSACTION_MAX] = {
 int dump_queue()
 {
     struct transaction_queue_node_t *node;
-    char list[1024] = "";
+    char list[8192] = "";
     char trans[2] = "a";
 
     node = transaction_head;
