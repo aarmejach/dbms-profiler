@@ -43,6 +43,9 @@ for CLIENTS in $CLIENTSLIST; do
              -w $SCALE -o $RESULTS/$CLIENTS/record -c $CLIENTS -l $PORT -n -N -i $PGPID -r
 	do_stop_postgres
 	rm -r $DATADIR
+	if grep -Rq "driver is exiting normally" $RESULTS/$CLIENTS/record; then
+	    rm -r $RESULTS/$CLIENTS/record
+	fi
     else
         # Execute with perf stat
         source "$BASEDIR/common/perf-counters-axle.sh"
@@ -63,6 +66,10 @@ for CLIENTS in $CLIENTSLIST; do
 
 	    do_stop_postgres
 	    rm -r $DATADIR
+
+	    if grep -Rq "driver is exiting normally" $RESULTS/$CLIENTS/$counter; then
+		    rm -r $RESULTS/$CLIENTS/$counter
+	    fi
         done
     fi
     DATADIR=$ORIGDATADIR
@@ -75,7 +82,7 @@ done
 if [ "$STAT" = false ]; then
     cd $RESULTS
     for CLIENTS in $CLIENTSLIST; do
-	cd $CLIENTS/record
+	cd $CLIENTS/
 
         cgf="callgraph.pdf"
 	echo "Creating the call graph: $cgf"

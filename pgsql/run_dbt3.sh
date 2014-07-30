@@ -48,6 +48,7 @@ for NUMSTREAMS in ${STREAMS}; do
 
     # Create stream files
     do_stream_creation $NUMSTREAMS
+    cd ${RESULTS}/${NUMSTREAMS}streams
 
     if [ "$SIMULATOR" = true ]; then
         do_launch_simulation $NUMSTREAMS
