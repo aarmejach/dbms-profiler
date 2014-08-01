@@ -102,6 +102,7 @@ def _main():
     plot_stacked(data, 'memory-stalls-breakdown',
                 'prcnt_cycles_dtlb_walk', 'prcnt_cycles_itlb_walk',
                 'prcnt_cycles_pending_l2d_miss',
+                'prcnt_cycles_pending_l1i_miss',
                 'prcnt_cycles_pending_l2i_miss')
 
     plot_stacked(data, 'core-stalls-breakdown',

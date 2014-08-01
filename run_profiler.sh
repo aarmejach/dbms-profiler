@@ -33,7 +33,7 @@ do
             ;;
         -a|--append) # append a "name" to results dir
             shift
-            RESULTSDIR_APPEND="-$1"
+            RESULTSDIR=$RESULTSDIR-$1
             ;;
         -r|--record) # use perf record instead of stat
             STAT=false
