@@ -148,7 +148,7 @@ sleep 5
 if [ "%(APP)s" == "tpch" ]; then
 
     ii=$(printf "%(pf)s" %(INPUT)s)
-    psql -h /tmp -p $NEWPORT -d $DBNAME -f $QUERIESDIR/q%(INPUT)s.sql 2> psqlterm.stderr > psqlterm.stdout &
+    psql -h /tmp -p $NEWPORT -d $DBNAME -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
 
 elif [ "%(APP)s" == "dbt3" ]; then
 

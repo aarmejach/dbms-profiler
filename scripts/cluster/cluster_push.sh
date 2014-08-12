@@ -17,6 +17,9 @@ rsync -aP --delete --exclude 'build' --exclude '.git' $PGPATH $SERVER_DIR/
 #zsim
 rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/' --exclude 'mcpat*' --exclude 'nvmain/.hg' --exclude 'nvmain/build' --exclude 'results' $ZSIMPATH $SERVER_DIR/
 
+#queries
+rsync -aP --delete $BASEDIR/../../benchmarks/queries $SERVER_DIR/
+
 #install
 scp $BASEDIR/cluster_build.sh $SERVER_DIR
 
