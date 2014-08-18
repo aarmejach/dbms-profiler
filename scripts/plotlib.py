@@ -173,14 +173,16 @@ def mk_stacked(config, name, xticks, legend, data, data_err=None, ylim=None, xti
     plt.gca().yaxis.grid(color='gray', linestyle='-', linewidth=0.5)
     return plt
 
-def mk_clusterstacked(config, name, xticks, legend, data, data_err=None, ylim=None, xticks_per_bar=None):
+def mk_clusterstacked(config, name, xticks, xticks_inner, legend, data, data_err=None, ylim=None, xticks_per_bar=None):
     assert(len(legend)==len(data))
 
     # Load config file
     execfile(config, globals(), globals())
 
     ind = np.arange(len(xticks))        # the x locations for the groups
-    barwidth = 1.0/float(num_clustered+1)      # the width of the bars
+    print ind
+    #barwidth = 1.0/float(num_clustered+1)      # the width of the bars
+    barwidth = 1.0
 
     # create a new figure, set the figure size specified in config
     fig = plt.figure(figsize=figure_size)
@@ -190,7 +192,6 @@ def mk_clusterstacked(config, name, xticks, legend, data, data_err=None, ylim=No
     # set the specified ylim and xlim for the returned subplot
     if ylim:
         ax.set_ylim(*ylim)
-    ax.set_xlim(right=len(ind))
 
     # calculate bottoms for stacking
     y = np.row_stack(data)
@@ -200,23 +201,53 @@ def mk_clusterstacked(config, name, xticks, legend, data, data_err=None, ylim=No
 
     # add bars to be printed
     rects = []
+    tick_position = []
+    group_position = []
     left_empty = barwidth/2.0
+    print data
+    col = 0
+    cur_group = 0
     for idx,d in enumerate(data):
-        for i in xrange(num_clustered):
+        for ngroup in cluster_groups:
+            for i in xrange(ngroup):
+		print d
+		print col+i
+		dd = d[col+i]
+
+		if idx == 0:
+		    bb = [0]
+		else:
+		    b = y_stack[idx-1]
+		    bb = b[col+i]
+
+		rects.append(ax.bar(left=left_empty+col+(left_empty*cur_group), height=dd,
+				    width=barwidth, bottom=bb, alpha=1, color=colors[idx],
+				    ecolor='black', edgecolor='black', hatch=hatch_patterns[idx]))
+		tick_position.append(left_empty+col+(left_empty*cur_group)+(barwidth/2))
+            col = i
+	    group_position.append(left_empty + (ngroup*barwidth/2) + (cur_group*left_empty))
+	    cur_group = cur_group + 1
+
+    ax.set_xlim(right=left_empty+col+(left_empty*cur_group))
+	#print idx,d
+        #num_clustered = cluster_groups.pop(0)
+        #for i in xrange(num_clustered):
             #this gives every n'th element given a starting position 'i'
             # will give the values for a certain configuration for one breakdown component
-            dd = d[i::num_clustered]
+            #dd = d[i::num_clustered]
+	    #print dd
 
             # calculate bottoms
-            if idx == 0:
-                bb = [0] * len(dd)
-            else:
-                b = y_stack[idx-1]
-                bb = b[i::num_clustered]
+            #if idx == 0:
+                #bb = [0] * len(dd)
+            #else:
+                #b = y_stack[idx-1]
+                #bb = b[i::num_clustered]
 
-            assert(len(ind)==len(dd)==len(bb))
-            rects.append(ax.bar(left=ind+left_empty+(i*barwidth), height=dd, width=barwidth, bottom=bb,
-                            alpha=1, color=colors[idx], ecolor='black', edgecolor='black', hatch=hatch_patterns[idx]))
+            #assert(len(ind)==len(dd)==len(bb))
+            #rects.append(ax.bar(left=ind+left_empty+(i*barwidth), height=dd, width=barwidth, bottom=bb,
+                            #alpha=1, color=colors[idx], ecolor='black', edgecolor='black', hatch=hatch_patterns[idx]))
+	    #col = i
 
     # put labels for data bars that overflow ylim
     last = 0
@@ -230,9 +261,9 @@ def mk_clusterstacked(config, name, xticks, legend, data, data_err=None, ylim=No
                 else:
                     padding = 0
                     multi = 0
-                ax.text((padding*multi)+left_empty+(i*barwidth)+((i/num_clustered)*barwidth)+(barwidth/2.),
-                        ylim[1]+label_y_space, '%s'%round(elem,2), ha='center', va='bottom',
-                        rotation=lable_angle_rotation, fontsize=numbers_fontsize)
+                #ax.text((padding*multi)+left_empty+(i*barwidth)+((i/num_clustered)*barwidth)+(barwidth/2.),
+                        #ylim[1]+label_y_space, '%s'%round(elem,2), ha='center', va='bottom',
+                        #rotation=lable_angle_rotation, fontsize=numbers_fontsize)
                 last = i
 
     mytitle = title
@@ -247,23 +278,28 @@ def mk_clusterstacked(config, name, xticks, legend, data, data_err=None, ylim=No
         item.set_fontsize(ylabel_fontsize)
 
     # xticks possition and labels
-    ax.set_xticks(ind + left_empty + (num_clustered/2.0)*barwidth)
+    #ax.set_xticks(ind + left_empty + (num_clustered/2.0)*barwidth)
+    ax.set_xticks(group_position)
     ax.set_xticklabels(xticks,y=-.05, fontsize=xlabel_fontsize)
     plt.gcf().subplots_adjust(bottom=0.2)
 
     # TODO: labels for configuration L B S BS D DK W WK ...
     if xticks_per_bar:
-        for i in xrange(num_clustered):
-            for idx in xrange(len(ind)):
-                ax.text(rects[i][idx].get_x()+rects[i][idx].get_width()/2., labels_y, '%s'%xticks_per_bar[i],
-                    ha='center', va='baseline', fontsize=text_fontsize, rotation=labels_rotation)
+        for i in xrange(col):
+            ax.text(tick_position[i], labels_y, '%s'%xticks_inner[i],
+                ha='center', va='baseline', fontsize=text_fontsize, rotation=labels_rotation)
+
+        #for i in xrange(num_clustered):
+            #for idx in xrange(len(ind)):
+                #ax.text(rects[i][idx].get_x()+rects[i][idx].get_width()/2., labels_y, '%s'%xticks_per_bar[i],
+                    #ha='center', va='baseline', fontsize=text_fontsize, rotation=labels_rotation)
 
     plt.tight_layout()
     # Graph shrinking if desired, no shrinking by default
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * shrink_width_factor, box.height * shrink_height_factor])
 
-    leg = ax.legend([a[0] for a in rects[0::num_clustered]], # get the right colors
+    leg = ax.legend([a[0] for a in rects], # get the right colors
           legend, # labels
           loc=legend_loc,
           ncol=legend_ncol,

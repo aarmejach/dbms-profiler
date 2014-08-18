@@ -78,11 +78,13 @@ def _eval_term(d, term):
   count = eval(term)
   return count
 
-def add_counter(counters, results, counter_name, counter_label, counter_term):
+def add_counter(counters, results, counter_name, counter_label, counter_term, no_negative=False):
   for k in results:
     v = results[k]
     try:
       count = _eval_term(v, counter_term)
+      if no_negative and count < 0:
+          count = 0
     except KeyError:
       print "Warn: Keyerror " + k + "for term " + counter_term
       count = -1
@@ -209,6 +211,37 @@ def _main():
 
   # MLP
   add_counter(counters, results, 'mlp', 'Memory level parallelism', '$530160 / $1530160')
+
+  # ISPASS 2014 counters
+  add_counter(counters, results, 'slots', 'Cycles by issue width', '$total_cycles * 4')
+  add_counter(counters, results, 'frontend', 'Frontend bound', '$19c / $slots')
+  add_counter(counters, results, 'speculation', 'Bad speculation', '( $10e - $2c2 + ( 4 * $30d ) ) / $slots')
+  add_counter(counters, results, 'retiring', 'Retiring', '$2c2 / $slots')
+  add_counter(counters, results, 'backend', 'Backend bound', '1 - ( $frontend + $speculation + $retiring )')
+  add_counter(counters, results, 'front_lat', 'Frontend latency bound', '$453019c / $total_cycles')
+  add_counter(counters, results, 'front_bw', 'Frontend bandwidth bound', '$frontend - $front_lat')
+  add_counter(counters, results, 'br_fraction', 'Branch mispredicted fraction', '$c5 / ( $c5 + $2c3 + $4c3 )')
+  add_counter(counters, results, 'br_mispred', 'Branch mispredicts', '$br_fraction * $speculation')
+  add_counter(counters, results, 'exec_stalls', 'Execution stalls', '( ( $total_cycles - $15301b1 ) - $15e + $15301b1 - $25301b1 ) / $total_cycles')
+  add_counter(counters, results, 'st_bound', 'Stores bound', '$8a2 / $total_cycles')
+  add_counter(counters, results, 'l2_bound', 'L2 bound', '( $65306a3 - $55305a3 ) / $total_cycles')
+  add_counter(counters, results, 'l3_hit', 'L3 hit fraction', '$4d1 / ( $4d1 + 7 * $20d1 )')
+  add_counter(counters, results, 'l3_bound', 'L3 bound', '( 1 - $l3_hit ) * $55305a3 / $total_cycles')
+  add_counter(counters, results, 'extmem_bound', 'External memory bound', '( $l3_hit * $55305a3 ) / $total_cycles')
+  add_counter(counters, results, 'mem_bound', 'Memory bound', '$st_bound + $l2_bound + $l3_bound + $extmem_bound')
+  add_counter(counters, results, 'core_bound', 'Core bound', '$exec_stalls - $mem_bound', True)
+  add_counter(counters, results, 'mem_bw', 'Memory bandwidth', '$1c530860 / $1530860')
+  add_counter(counters, results, 'mem_low_bw', 'Memory bandwidth', '$e530860 / $1530860')
+  add_counter(counters, results, 'mem_lat', 'Memory latency', '( $1530860 / $total_cycles ) - $mem_bw - $mem_low_bw')
+  add_counter(counters, results, 'prcnt_offchip_bw', '% Offchip bandwidth utilization', '( 100 * ( ( ( 64 * 2600 * 10**9 ) * $20d1 ) / $total_cycles ) / ( 51 * 10**9 ) )')
+
+  # Intel manual
+  add_counter(counters, results, 'shrd_write', '% cycles accessing data modified by another core',
+                '( $4d2 * 60 ) / $total_cycles')
+  add_counter(counters, results, 'shrd_read', '% cycles accessing data read by another core',
+                '( $2d2 * 43 ) / $total_cycles')
+  add_counter(counters, results, 'blocked_ld', 'Blocking store forwarding cost, dependent loads may be blocked',
+                '( $203 * 13 ) / $total_cycles')
 
   # Template
   #add_counter(counters, results, '', '', '')

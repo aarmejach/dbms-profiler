@@ -68,6 +68,38 @@ def plot_stacked(data, name, *counter_name):
     if not os.path.exists(folder_figures): os.makedirs(folder_figures)
     plt.savefig("%s/%s.eps" % (folder_figures, name))
 
+def plot_clusterstacked(data, name, *counter_name):
+
+    # reset the configuration to the default
+    config='scripts/gen_results_default_config.py'
+    # TODO For each directory set the local configuration
+
+    xtick_labels = list(set(data['bench']))
+    xtick_inner_labels = data['query']
+    column_names = list(counter_name)
+    columns = []
+    column_ids_errdata = []
+
+    # Populate data to plot
+    for counter in counter_name:
+        columns.append(data[counter])
+
+    #name = '-'.join(column_names)
+
+    plt = mk_clusterstacked(
+                      config,
+                      name,
+                      xticks=xtick_labels,
+                      xticks_inner=xtick_inner_labels,
+                      legend=column_names,
+                      data=columns,
+                      data_err = column_ids_errdata,
+                      ylim = None,
+                      xticks_per_bar=None,
+                      )
+    if not os.path.exists(folder_figures): os.makedirs(folder_figures)
+    plt.savefig("%s/%s.eps" % (folder_figures, name))
+
 
 def _main():
     global data_file, folder_figures
@@ -112,6 +144,32 @@ def _main():
                 'prcnt_cycles_full_rs', 'prcnt_cycles_full_sb',
                 'prcnt_cycles_full_rob', 'prcnt_cycles_writting_fpuword')
 
+    plot_stacked(data, 'top-level',
+                'retiring',
+                'speculation',
+                'frontend',
+                'backend')
+
+    plot_stacked(data, 'backend-level',
+                'core_bound',
+                'mem_bound')
+
+    plot_stacked(data, 'memory-level',
+                'l2_bound',
+                'l3_bound',
+                'extmem_bound',
+                'st_bound')
+
+    plot_stacked(data, 'offchip-memory-level',
+                'mem_bw',
+                'mem_low_bw',
+                'mem_lat')
+
+    plot_bar(data, 'prcnt_offchip_bw')
+
+    plot_stacked(data, 'frontend-level',
+                'front_bw',
+                'front_lat')
 
 if __name__ == '__main__':
   _main()
