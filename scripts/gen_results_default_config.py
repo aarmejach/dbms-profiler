@@ -39,9 +39,9 @@ lable_y_space=0
 title_fontsize=16
 xtitle_fontsize=14
 ytitle_fontsize=14
-xlabel_fontsize=12.5
-ylabel_fontsize=14
-legend_fontsize=14
+xlabel_fontsize=18
+ylabel_fontsize=18
+legend_fontsize=20
 text_fontsize=14.5
 numbers_fontsize=14
 

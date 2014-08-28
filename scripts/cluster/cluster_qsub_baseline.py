@@ -5,10 +5,13 @@ from subprocess import Popen, PIPE
 
 ALL_APPS = "tpch dbt2 dbt3".split()
 inputs = {
-'tpch' : "2 8 11 17".split(),
+'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
 'dbt3' : "1 2 4 8".split(),
 'dbt2' : "16 32 64".split()
 }
+
+# Specify only 1 scale
+SCALE = 1
 
 USAGE = """
 Submit executions to cluster.
@@ -94,7 +97,7 @@ export NVMAINPATH=$NAS_HOME/zsim/nvmain
 export ZSIMPATH=$NAS_HOME/zsim
 export PGPATH=$NAS_HOME/postgres
 export BOOST=$NAS_HOME/boost
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib:$NAS_HOME/icu/source/lib
 export PATH=$PGPATH/build/bin:$PATH
 
 TESTHOME=$NAS_HOME/%(PREFIX)s
@@ -102,7 +105,7 @@ LOCALHOME=/users/scratch/adria
 RES=$NAS_HOME/results-zsim/%(PREFIX)s
 mkdir -p $RES
 
-TESTCONFIG=%(APP)s_%(INPUT)s
+TESTCONFIG=%(APP)s_%(INPUT)s_%(SCALE)s
 mkdir -p $TESTHOME/$TESTCONFIG
 cd $TESTHOME/$TESTCONFIG
 
@@ -116,7 +119,7 @@ if [ "%(APP)s" == "dbt2" ]; then
     DBDIR=pgdata100WH-dbt2
     DBNAME=dbt2
 else
-    DBDIR=pgdata100GB-tpch
+    DBDIR=pgdata%(SCALE)sGB-tpch
     DBNAME=tpch
 fi
 DATADIR=$LOCALHOME/$DBDIR-%(INPUT)s
@@ -128,8 +131,7 @@ chmod 700 $DATADIR
 ### Config for zsim
 PORT=5443
 let "NEWPORT=$PORT+%(INPUT)s"
-cp $ZSIMPATH/tests/sandy-postgres-template.cfg in.cfg
-sed -i "s#PGBINDIR##g" in.cfg
+cp $ZSIMPATH/tests/sandy-postgres-dram.cfg in.cfg
 sed -i "s#PORT#$NEWPORT#g" in.cfg
 sed -i "s#DATADIR#$DATADIR#g" in.cfg
 
@@ -148,13 +150,13 @@ sleep 5
 if [ "%(APP)s" == "tpch" ]; then
 
     ii=$(printf "%(pf)s" %(INPUT)s)
-    psql -h /tmp -p $NEWPORT -d $DBNAME -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
+    psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejach -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
 
 elif [ "%(APP)s" == "dbt3" ]; then
 
     i=1
     while [ $i -le %(INPUT)s ]; do
-        psql -h /tmp -p $NEWPORT -d $DBNAME -f $QUERIESDIR/throughput_query$i\
+        psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejach -f $QUERIESDIR/throughput_query$i\
 	    2> psqlterm_stream$i.stderr > psqlterm_stream$i.stdout &
         let "i=$i+1"
     done
@@ -196,9 +198,9 @@ os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
 for APP in APPS:
     for INPUT in inputs[APP]:
 	print APP + " " + INPUT
-        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s.sh" % (dir_prefix, APP, INPUT))
+        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
         scriptfile = file(scriptname, "w")
-	script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d" }
+        script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE }
         scriptfile.write(script)
         scriptfile.close()
 

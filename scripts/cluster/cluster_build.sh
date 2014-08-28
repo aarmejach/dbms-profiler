@@ -30,7 +30,7 @@ fi
 
 # Compile zsim
 cd zsim
-scons --r -j$CORES
+scons -j$CORES
 echo "ZSim compilation done."
 echo "---------------------------------"
 

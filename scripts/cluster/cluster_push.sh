@@ -20,6 +20,9 @@ rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/' --ex
 #queries
 rsync -aP --delete $BASEDIR/../../benchmarks/queries $SERVER_DIR/
 
+#datadir
+rsync -aP --delete $BASEDIR/../../data/pgdata1GB-tpch $SERVER_DIR/
+
 #install
 scp $BASEDIR/cluster_build.sh $SERVER_DIR
 
