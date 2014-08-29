@@ -25,15 +25,17 @@ def parse_h5file(file):
     return res,error
 
 
-def get_results():
+def get_results(d):
     results = {}
-    for root, sfs, fs in os.walk(folder_results):
+    for root, sfs, fs in os.walk(folder_results + d):
         for f in fs:
-            if f == 'zsim-ev.h5':
-                tmp = root.split('/')
+            if 'zsim-ev.h5' in f:
+                tmp = f.split('_')
                 dict,error = parse_h5file(os.path.join(root, f))
+                # change query format
+                tmp[1] = "%02d" % int(tmp[1])
                 if not error:
-                    results[tuple(tmp[1:])] = dict
+                    results[tuple(tmp[:])] = dict
                 else:
                     print "SKIPPING configuration " + " ".join(tmp)
     return results
@@ -67,7 +69,7 @@ def data_to_csv(results):
     data = []
 
     # First row, column names. Get first dict elem and sort event dictionary keys.
-    column_names = ['bench', 'query', 'db', 'scale']
+    column_names = ['bench', 'query', 'scale']
     for elem in sorted(results[results.keys()[0]]):
         column_names.append(elem)
     data.append(column_names)
@@ -75,10 +77,9 @@ def data_to_csv(results):
     # Add rows one by one
     for key in sorted(results):
         row = []
-        row.append(key[2]) # bench
-        row.append(key[4]) # query
-        row.append(key[1]) # db
-        row.append(key[3]) # scale
+        row.append(key[0]) # bench
+        row.append(key[1])# query
+        row.append(key[2]) # scale
 
         # Get event dict and iterate over sorted keys
         dict = results.get(key)
@@ -99,45 +100,49 @@ def _main():
 
     # Configuration parameters
     #file_name = "common/perf-counters-axle-list"
-    folder_results = "results-axle/zsim/"
-    csv_file = "figures/zsim-data.csv"
+    folder_results = os.getcwd() + '/' + "results-zsim/"
+    directories=[d for d in os.listdir(folder_results) if os.path.isdir(folder_results + d)]
 
-    # Define stats of interest and gather results
-    statsdict = {
-          'sandy' : ['instrs', 'cycles', 'mispredBranches'],
-          'l1d'   : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
-          'l1i'   : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
-          'l2'    : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
-          'l3'    : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
-          'mem'   : ['rd', 'wr']
-          }
-    results = get_results()
+    for d in directories:
+        csv_file = os.getcwd() + '/' + "figures/zsim-data-" + d + ".csv"
 
-    # General statistics of interest
-    add_counter(results, 'ipc', '$sandy_instrs / $sandy_cycles')
+        # Define stats of interest and gather results
+        statsdict = {
+              'sandy' : ['instrs', 'cycles', 'mispredBranches'],
+              'l1d'   : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
+              'l1i'   : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
+              'l2'    : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
+              'l3'    : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
+              'mem'   : ['rd', 'wr', 'PUTS', 'PUTX', 'rdlat', 'wrlat', 'footprint', 'addresses']
+              }
+        results = get_results(d)
+        #pprint(results)
 
-    # Caches
-    add_counter(results, 'l1d_hits', '$l1d_hGETS + $l1d_hGETX')
-    add_counter(results, 'l1d_misses', '$l1d_mGETS + $l1d_mGETXIM')
-    add_counter(results, 'l1i_hits', '$l1i_hGETS + $l1i_hGETX')
-    add_counter(results, 'l1i_misses', '$l1i_mGETS + $l1i_mGETXIM')
-    add_counter(results, 'l2_hits', '$l2_hGETS + $l2_hGETX')
-    add_counter(results, 'l2_misses', '$l2_mGETS + $l2_mGETXIM')
-    add_counter(results, 'l3_hits', '$l3_hGETS + $l3_hGETX')
-    add_counter(results, 'l3_misses', '$l3_mGETS + $l3_mGETXIM')
+        # General statistics of interest
+        add_counter(results, 'ipc', '$sandy_instrs / $sandy_cycles')
 
-    add_counter(results, 'l1d_mpki', '( $l1d_misses * 1000 ) / $sandy_instrs')
-    add_counter(results, 'l1i_mpki', '( $l1i_misses * 1000 ) / $sandy_instrs')
-    add_counter(results, 'l2_mpki', '( $l2_misses * 1000 ) / $sandy_instrs')
-    add_counter(results, 'l3_mpki', '( $l3_misses * 1000 ) / $sandy_instrs')
-    
-    # Mem
-    add_counter(results, 'mem_acceses', '$mem_rd + $mem_wr')
+        # Caches
+        add_counter(results, 'l1d_hits', '$l1d_hGETS + $l1d_hGETX')
+        add_counter(results, 'l1d_misses', '$l1d_mGETS + $l1d_mGETXIM')
+        add_counter(results, 'l1i_hits', '$l1i_hGETS + $l1i_hGETX')
+        add_counter(results, 'l1i_misses', '$l1i_mGETS + $l1i_mGETXIM')
+        add_counter(results, 'l2_hits', '$l2_hGETS + $l2_hGETX')
+        add_counter(results, 'l2_misses', '$l2_mGETS + $l2_mGETXIM')
+        add_counter(results, 'l3_hits', '$l3_hGETS + $l3_hGETX')
+        add_counter(results, 'l3_misses', '$l3_mGETS + $l3_mGETXIM')
 
-    #pprint(results)
-    
-    # Write CSV file with all the data
-    data_to_csv(results)
+        add_counter(results, 'l1d_mpki', '( $l1d_misses * 1000 ) / $sandy_instrs')
+        add_counter(results, 'l1i_mpki', '( $l1i_misses * 1000 ) / $sandy_instrs')
+        add_counter(results, 'l2_mpki', '( $l2_misses * 1000 ) / $sandy_instrs')
+        add_counter(results, 'l3_mpki', '( $l3_misses * 1000 ) / $sandy_instrs')
+
+        # Mem
+        add_counter(results, 'mem_acceses', '$mem_rd + $mem_wr')
+
+        #pprint(results)
+
+        # Write CSV file with all the data
+        data_to_csv(results)
 
 if __name__ == '__main__':
     _main()

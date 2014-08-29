@@ -22,7 +22,7 @@ CORES=$(cat /proc/cpuinfo | grep processor -c)
 if [ $CORES -eq 1 ]; then
     # single-core node, compile on some other node!
     echo "On single-core node $(hostname). Jumping to another node."
-    qrsh $NAS_HOME/cluster_build.sh
+    qrsh -l medium $NAS_HOME/cluster_build.sh
     exit $?
 else
     echo "Building on: $(hostname), with $CORES cores"
