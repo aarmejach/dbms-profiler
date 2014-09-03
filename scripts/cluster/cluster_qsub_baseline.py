@@ -11,7 +11,7 @@ inputs = {
 }
 
 # Specify only 1 scale
-SCALE = 1
+SCALE = 100
 
 USAGE = """
 Submit executions to cluster.
@@ -91,6 +91,14 @@ script_template = """#!/bin/sh
 IFS='
 '
 
+teardown() {
+  pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 2
+  JOBS=$(jobs -p)
+  test -z "$JOBS" || { kill $JOBS && sleep 3; }
+  JOBS=$(jobs -p)
+  test -z "$JOBS" || kill -9 $JOBS
+}
+
 export NAS_HOME=/scratch/nas/1/adria
 export PINPATH=$NAS_HOME/zsim/pin_kit
 export NVMAINPATH=$NAS_HOME/zsim/nvmain
@@ -121,12 +129,17 @@ if [ "%(APP)s" == "dbt2" ]; then
 else
     DBDIR=pgdata%(SCALE)sGB-tpch
     DBNAME=tpch
+
+    mkdir -p $LOCALHOME/$DBDIR
+    rsync -aP --max-size=25m --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
+    cp -asu $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR 2> /dev/null
+
+    DATADIR=$LOCALHOME/$DBDIR
+    chmod 700 $DATADIR
 fi
-DATADIR=$LOCALHOME/$DBDIR-%(INPUT)s
-trap 'kill -9 $(jobs -p) && rm -r $DATADIR' SIGINT SIGTERM
-mkdir -p $DATADIR
-cp -a $NAS_HOME/$DBDIR/* $DATADIR
-chmod 700 $DATADIR
+
+### Install teardown function
+trap teardown EXIT INT TERM
 
 ### Config for zsim
 PORT=5443
@@ -142,6 +155,9 @@ ZSIMPID=$!
 # Wait for the potgres server to start
 sleep 2
 while ! cat simterm.txt | grep -q "ready to accept connections" ; do
+    if grep --quiet FATAL simterm.txt; then
+        exit 1
+    fi
     sleep 5
 done
 sleep 5
@@ -150,13 +166,13 @@ sleep 5
 if [ "%(APP)s" == "tpch" ]; then
 
     ii=$(printf "%(pf)s" %(INPUT)s)
-    psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejach -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
+    psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejac -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
 
 elif [ "%(APP)s" == "dbt3" ]; then
 
     i=1
     while [ $i -le %(INPUT)s ]; do
-        psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejach -f $QUERIESDIR/throughput_query$i\
+        psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejac -f $QUERIESDIR/throughput_query$i\
 	    2> psqlterm_stream$i.stderr > psqlterm_stream$i.stdout &
         let "i=$i+1"
     done
@@ -183,7 +199,6 @@ for file in *; do
     mv $file "$RES/${TESTCONFIG}_$file"
 done
 
-rm -r $DATADIR
 exit 0
 """
 

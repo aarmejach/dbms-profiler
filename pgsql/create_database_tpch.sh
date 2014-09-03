@@ -169,6 +169,7 @@ track_counts = off
 track_io_timing = off
 update_process_title = off
 autovacuum = off
+checkpoint_segments = 3
 "
 echo "$execution_configuration" | tee -a $DATADIR/postgresql.conf
 
