@@ -97,6 +97,7 @@ teardown() {
   test -z "$JOBS" || { kill $JOBS && sleep 3; }
   JOBS=$(jobs -p)
   test -z "$JOBS" || kill -9 $JOBS
+  rm -r $DATADIR
 }
 
 export NAS_HOME=/scratch/nas/1/adria
@@ -130,6 +131,7 @@ else
     DBDIR=pgdata%(SCALE)sGB-tpch
     DBNAME=tpch
 
+    rm -r $LOCALHOME/$DBDIR
     mkdir -p $LOCALHOME/$DBDIR
     rsync -aP --max-size=25m --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
     cp -asu $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR 2> /dev/null
