@@ -122,12 +122,12 @@ def _main():
   global csv_file, file_name, folder_results
 
   # Go to profiler's base dir
-  os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/..')
+  os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
   # Configuration parameters
   file_name = "common/perf-counters-axle-list"
   folder_results = "results-axle/perf/"
-  csv_file = "figures/perf-data.csv"
+  csv_file = "results/perf-data.csv"
 
   # Get counters of interest and read results
   counters = get_counters()
