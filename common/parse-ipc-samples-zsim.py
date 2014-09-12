@@ -3,6 +3,7 @@
 
 import h5py # presents HDF5 files as numpy arrays
 import numpy as np
+import sys
 
 # return time in seconds
 def get_time(cycles):
@@ -11,8 +12,13 @@ def get_time(cycles):
 
 def _main():
 
+    if len(sys.argv) == 2:
+        ftmp = str(sys.argv[1])
+    else:
+        ftmp = 'zsim.h5'
+
     # Open periodic stats file
-    f = h5py.File('zsim.h5', 'r')
+    f = h5py.File(ftmp, 'r')
 
     # Get the single dataset in the file
     dset = f["stats"]["root"]
