@@ -46,11 +46,11 @@ def _main():
     global fig_dir
 
     # Go to profiler's base dir
-    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/..')
+    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
     # Data folters
     perf_file = "figures/perf-data.csv"
-    zsim_file = "figures/zsim-data.csv"
+    zsim_file = "figures/zsim-data-tests_zsim_baseline.csv"
     fig_dir = "figures/validation/"
 
     # Load CSV into a numpy recarray

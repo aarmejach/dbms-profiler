@@ -6,7 +6,7 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-def add_results(dir):
+def add_results_perf(dir):
     a = re.compile("ipc-samples-[a-z]*\.csv")
     results = {}
     for root, sfs, fs in os.walk(dir):
@@ -15,7 +15,18 @@ def add_results(dir):
             #print f
             if a.match(f):
                 tmp = root.split('/')
-                results[tuple(tmp[2:])] = mp.mlab.csv2rec(os.path.join(root,f),delimiter=',')
+                results[tuple(tmp[3:])] = mp.mlab.csv2rec(os.path.join(root,f),delimiter=',')
+    return results
+
+def add_results_zsim(dir):
+    results = {}
+    for root, sfs, fs in os.walk(dir):
+        for f in fs:
+            if "zsim.h5.csv" in f:
+                tmp = f.split('_')[0:3]
+                tmp[1] = "q%02d" % int(tmp[1])
+                tmp[1], tmp[2] = tmp[2], tmp[1]
+                results[tuple(tmp[:])] = mp.mlab.csv2rec(os.path.join(root,f),delimiter=',')
     return results
 
 def plot_lines(results_perf, results_zsim):
@@ -32,13 +43,15 @@ def plot_lines(results_perf, results_zsim):
         #names_zsim = results_zsim[key].dtype.names
 
         # Line for perf
-        x = results_perf[key]['absolute_time']
-        y = results_perf[key]['ipc']
+        scaleFactor = len(results_perf[key]['absolute_time']) / 10000
+        x = results_perf[key]['absolute_time'][::scaleFactor]
+        y = results_perf[key]['ipc'][::scaleFactor]
         line_perf = mp.lines.Line2D(x, y, linewidth=1, color='r', label='Real')
 
         # Line for zsim
-        x = results_zsim[key]['absolute_time']
-        y = results_zsim[key]['ipc']
+        scaleFactor = len(results_zsim[key]['absolute_time']) / 10000
+        x = results_zsim[key]['absolute_time'][::scaleFactor]
+        y = results_zsim[key]['ipc'][::scaleFactor]
         line_zsim = mp.lines.Line2D(x, y, linewidth=1, color='b', label='Zsim')
 
         ax.add_line(line_perf)
@@ -56,17 +69,17 @@ def plot_lines(results_perf, results_zsim):
 
 def _main():
     # Go to profiler's base dir
-    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/..')
+    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
     # Configuration parameters
     perf_dir = "results-axle/perf/"
-    zsim_dir = "results-axle/zsim/"
+    zsim_dir = "results-zsim/tests_zsim_baseline/"
     global fig_dir
     fig_dir = "figures/validation/"
 
     # Gather results
-    results_perf = add_results(perf_dir)
-    results_zsim = add_results(zsim_dir)
+    results_perf = add_results_perf(perf_dir)
+    results_zsim = add_results_zsim(zsim_dir)
 
     #pprint(results_perf)
     #pprint(results_zsim)
