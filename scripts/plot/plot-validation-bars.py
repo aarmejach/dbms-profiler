@@ -9,7 +9,7 @@ import h5py
 from plotlib import *
 
 def plot_bar(name, liststats, results_perf, results_zsim):
-    
+
     # reset the configuration to the default
     config='scripts/gen_results_default_config.py'
     # TODO For each directory set the local configuration
@@ -49,8 +49,8 @@ def _main():
     os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
     # Data folters
-    perf_file = "figures/perf-data.csv"
-    zsim_file = "figures/zsim-data-tests_zsim_baseline.csv"
+    perf_file = "results/perf-data.csv"
+    zsim_file = "results/zsim-data-tests_zsim_baseline.csv"
     fig_dir = "figures/validation/"
 
     # Load CSV into a numpy recarray

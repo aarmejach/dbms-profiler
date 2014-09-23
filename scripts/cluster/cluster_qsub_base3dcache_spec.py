@@ -3,11 +3,9 @@
 import sys, os, getopt
 from subprocess import Popen, PIPE
 
-ALL_APPS = "tpch dbt2 dbt3".split()
+ALL_APPS = "spec".split()
 inputs = {
-'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
-'dbt3' : "1 2 4 8".split(),
-'dbt2' : "16 32 64".split()
+'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 481.wrf 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split() # 447.dealII not working
 }
 
 # Specify only 1 scale
@@ -50,7 +48,7 @@ if not opts and len(args)>0:
   print USAGE
   sys.exit(1)
 
-dir_prefix = "tests_zsim_baseline"
+dir_prefix = "tests_zsim_base3dcache"
 APPS = ALL_APPS
 for o, a in opts:
   if o == "-p":
@@ -73,7 +71,7 @@ elif sys.argv[1] != "all":
 script_template = """#!/bin/sh
 ### Queue manager options
 # Specify a job name
-#$ -N zsim_baseline_%(APP)s_%(INPUT)s
+#$ -N zsim_base3dcache_%(APP)s_%(INPUT)s
 # Shell
 #$ -S /bin/bash
 # What are the conditions for sending an email
@@ -91,15 +89,6 @@ script_template = """#!/bin/sh
 IFS='
 '
 
-teardown() {
-  pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 2
-  JOBS=$(jobs -p)
-  test -z "$JOBS" || { kill $JOBS && sleep 3; }
-  JOBS=$(jobs -p)
-  test -z "$JOBS" || kill -9 $JOBS
-  rm -r $DATADIR
-}
-
 export NAS_HOME=/scratch/nas/1/adria
 export PINPATH=$NAS_HOME/zsim/pin_kit
 export NVMAINPATH=$NAS_HOME/zsim/nvmain
@@ -108,6 +97,7 @@ export PGPATH=$NAS_HOME/postgres
 export BOOST=$NAS_HOME/boost
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib:$NAS_HOME/icu/source/lib
 export PATH=$PGPATH/build/bin:$PATH
+export SPECDIR=$NAS_HOME/SPECCPU2006
 
 TESTHOME=$NAS_HOME/%(PREFIX)s
 LOCALHOME=/users/scratch/adria
@@ -120,82 +110,22 @@ cd $TESTHOME/$TESTCONFIG
 
 ulimit -c 0
 
-### Queries dir
-QUERIESDIR=$NAS_HOME/queries/pgsql/
-
-### Get data dir
-if [ "%(APP)s" == "dbt2" ]; then
-    DBDIR=pgdata100WH-dbt2
-    DBNAME=dbt2
-else
-    DBDIR=pgdata%(SCALE)sGB-tpch
-    DBNAME=tpch
-
-    rm -r $LOCALHOME/$DBDIR
-    mkdir -p $LOCALHOME/$DBDIR
-    rsync -aP --max-size=25m --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
-    cp -asu $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR 2> /dev/null
-
-    DATADIR=$LOCALHOME/$DBDIR
-    chmod 700 $DATADIR
-fi
-
-### Install teardown function
-trap teardown EXIT INT TERM
-
 ### Config for zsim
-PORT=5443
-let "NEWPORT=$PORT+%(INPUT)s"
-cp $ZSIMPATH/tests/sandy-postgres-dram.cfg in.cfg
-sed -i "s#PORT#$NEWPORT#g" in.cfg
-sed -i "s#DATADIR#$DATADIR#g" in.cfg
+if [ "%(APP)s" == "spec" ]; then
+    cp $ZSIMPATH/tests/sandy-spec-3dcache.cfg in.cfg
+    sed -i 's/#command\ =\ \"\.\/%(INPUT)s/command\ =\ \"\.\/%(INPUT)s/' in.cfg
 
-### Execute Zsim
-$ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt &
-ZSIMPID=$!
+    ### Copy spec workload over using symlinks
+    ln -s $SPECDIR/build/%(INPUT)s/* .
 
-# Wait for the potgres server to start
-sleep 2
-while ! cat simterm.txt | grep -q "ready to accept connections" ; do
-    if grep --quiet FATAL simterm.txt; then
-        exit 1
-    fi
-    sleep 5
-done
-sleep 5
+    ### Execute Zsim
+    $ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt
 
-# Run queries
-if [ "%(APP)s" == "tpch" ]; then
-
-    ii=$(printf "%(pf)s" %(INPUT)s)
-    psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejac -f $QUERIESDIR/q$ii.sql 2> psqlterm.stderr > psqlterm.stdout &
-
-elif [ "%(APP)s" == "dbt3" ]; then
-
-    i=1
-    while [ $i -le %(INPUT)s ]; do
-        psql -h localhost -p $NEWPORT -d $DBNAME -U aarmejac -f $QUERIESDIR/throughput_query$i\
-	    2> psqlterm_stream$i.stderr > psqlterm_stream$i.stdout &
-        let "i=$i+1"
-    done
-
-else
-    #TODO dbt2
-    : #nop
+    ### Remove spec symlinks
+    find . -type l | xargs rm -r
 fi
 
-# Wait for all pending streams to finish.
-for p in $(jobs -p); do
-  if [ $p != $ZSIMPID ]; then
-      wait $p
-  fi
-done
-
-# Stop server
-sleep 5
-pg_ctl stop -w -D ${DATADIR}
-
-# Sleep some more to allow sim to cleanup and move results
+### Sleep some more to allow sim to cleanup and move results
 sleep 10
 for file in *; do
     mv $file "$RES/${TESTCONFIG}_$file"
@@ -227,7 +157,7 @@ os.system("rsync -aP %s adria@gaudi:" % tmpdir_big)
 # qsub -l medium   # submit to "medium.q" queue, max 8 hours
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
-os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l big,node2012=1,exclusive_job=1 %s/\\{} \"" % (os.path.basename(tmpdir_big),os.path.basename(tmpdir_big)))
+os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l big %s/\\{} \"" % (os.path.basename(tmpdir_big),os.path.basename(tmpdir_big)))
 
 os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_big))
 

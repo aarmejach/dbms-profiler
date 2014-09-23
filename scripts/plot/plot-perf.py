@@ -105,10 +105,10 @@ def _main():
     global data_file, folder_figures
 
     # Go to profiler's base dir
-    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/..')
+    os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
     # Configuration parameters
-    data_file = "figures/perf-data.csv"
+    data_file = "results/perf-data.csv"
     folder_figures = "figures/perf/"
 
     # Load CSV into a numpy recarray

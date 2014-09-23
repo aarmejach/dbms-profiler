@@ -23,6 +23,9 @@ rsync -aP --delete $BASEDIR/../../benchmarks/queries $SERVER_DIR/
 #datadir
 rsync -aP --delete $BASEDIR/../../data/pgdata1GB-tpch $SERVER_DIR/
 
+#spec
+rsync -aP --delete --exclude 'cpu2006_original'  --exclude 'cpu2006_scripts'  --exclude 'execution_scripts' --exclude 'scripts' $SPECDIR $SERVER_DIR/
+
 #install
 scp $BASEDIR/cluster_build.sh $SERVER_DIR
 

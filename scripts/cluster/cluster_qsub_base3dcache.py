@@ -206,7 +206,7 @@ exit 0
 
 import tempfile, shutil
 
-tmpdir_huge = tempfile.mkdtemp()
+tmpdir_big = tempfile.mkdtemp()
 
 root = "/scratch/nas/1/adria"
 os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
@@ -215,20 +215,20 @@ os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
 for APP in APPS:
     for INPUT in inputs[APP]:
 	print APP + " " + INPUT
-        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
+        scriptname = os.path.join(tmpdir_big, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
         scriptfile = file(scriptname, "w")
         script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE }
         scriptfile.write(script)
         scriptfile.close()
 
-os.system("rsync -aP %s adria@gaudi:" % tmpdir_huge)
+os.system("rsync -aP %s adria@gaudi:" % tmpdir_big)
 
 # qsub             # submit to "all.q" queue, max 3 hours
 # qsub -l medium   # submit to "medium.q" queue, max 8 hours
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
-os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l huge,node2012=1,exclusive_job=1 %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
+os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l big,node2012=1,exclusive_job=1 %s/\\{} \"" % (os.path.basename(tmpdir_big),os.path.basename(tmpdir_big)))
 
-os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_huge))
+os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_big))
 
-shutil.rmtree(tmpdir_huge)
+shutil.rmtree(tmpdir_big)
