@@ -113,7 +113,7 @@ ulimit -c 0
 ### Config for zsim
 if [ "%(APP)s" == "spec" ]; then
     cp $ZSIMPATH/tests/sandy-spec-3dcache.cfg in.cfg
-    sed -i 's/#command\ =\ \"\.\/%(INPUT)s/command\ =\ \"\.\/%(INPUT)s/' in.cfg
+    sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
 
     ### Copy spec workload over using symlinks
     ln -s $SPECDIR/build/%(INPUT)s/* .
