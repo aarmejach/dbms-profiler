@@ -3,9 +3,10 @@
 import sys, os, getopt
 from subprocess import Popen, PIPE
 
-ALL_APPS = "spec".split()
-inputs = {
-'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split() # 447.dealII and 481.wrf not working
+ALL_APPS = "spec spec-r".split()
+inputs = { # 447.dealII and 481.wrf not working
+'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
+'spec-r' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split()
 }
 
 # Specify only 1 scale
@@ -113,17 +114,21 @@ ulimit -c 0
 ### Config for zsim
 if [ "%(APP)s" == "spec" ]; then
     cp $ZSIMPATH/tests/sandy-spec-3dcache-pred.cfg in.cfg
-    sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
-
-    ### Copy spec workload over using symlinks
-    ln -s $SPECDIR/build/%(INPUT)s/* .
-
-    ### Execute Zsim
-    $ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt
-
-    ### Remove spec symlinks
-    find . -type l | xargs rm -r
+elif [ "%(APP)s" == "spec-r" ]; then
+    cp $ZSIMPATH/tests/sandy-spec-multi-3dcache-pred.cfg in.cfg
 fi
+
+sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
+
+### Copy spec workload over using symlinks
+ln -s $SPECDIR/build/%(INPUT)s/* .
+
+### Execute Zsim
+$ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt
+
+### Remove spec symlinks
+find . -type l | xargs rm -r
+
 
 ### Sleep some more to allow sim to cleanup and move results
 sleep 10
@@ -136,7 +141,7 @@ exit 0
 
 import tempfile, shutil
 
-tmpdir_big = tempfile.mkdtemp()
+tmpdir_huge = tempfile.mkdtemp()
 
 root = "/scratch/nas/1/adria"
 os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
@@ -145,20 +150,20 @@ os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
 for APP in APPS:
     for INPUT in inputs[APP]:
 	print APP + " " + INPUT
-        scriptname = os.path.join(tmpdir_big, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
+        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
         scriptfile = file(scriptname, "w")
         script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE }
         scriptfile.write(script)
         scriptfile.close()
 
-os.system("rsync -aP %s adria@gaudi:" % tmpdir_big)
+os.system("rsync -aP %s adria@gaudi:" % tmpdir_huge)
 
 # qsub             # submit to "all.q" queue, max 3 hours
 # qsub -l medium   # submit to "medium.q" queue, max 8 hours
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
-os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l big %s/\\{} \"" % (os.path.basename(tmpdir_big),os.path.basename(tmpdir_big)))
+os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l huge %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
 
-os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_big))
+os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_huge))
 
-shutil.rmtree(tmpdir_big)
+shutil.rmtree(tmpdir_huge)
