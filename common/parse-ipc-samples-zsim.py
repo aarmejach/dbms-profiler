@@ -37,7 +37,7 @@ def _main():
     #prev_cycles = cycles[0][0]
     #prev_time = 0
 
-    print 'absolute_time,instructions,cycles,ipc'
+    print 'absolute_time,absolute_instructions,instructions,cycles,ipc'
 
     for i in xrange(1,len(instructions)):
         current_cycles = float(cycles[i][0])
@@ -47,7 +47,7 @@ def _main():
 
         current_time =  get_time(current_cycles)
         # Print time in seconds, instructions for the period, cycles for period, ipc
-        print '%f,%d,%d,%f' % (current_time, instr_sample, cycles_sample, instr_sample/cycles_sample)
+        print '%f,%d,%d,%d,%f' % (current_time, instructions[i][0], instr_sample, cycles_sample, instr_sample/cycles_sample)
 
 
 if __name__ == '__main__':

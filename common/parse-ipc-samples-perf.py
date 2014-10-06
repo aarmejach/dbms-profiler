@@ -1,12 +1,13 @@
 import sys, re
 
+absolute_instructions = 0
 prev_time = 0
 reference_time = 0
 pid = 0
 freq=2.6
 found = False
 
-print 'absolute_time,instructions,cycles,ipc'
+print 'absolute_time,absolute_instructions,instructions,cycles,ipc'
 
 for line in sys.stdin:
     if pid != 0 and str(':' + pid) in line:
@@ -30,9 +31,10 @@ for line in sys.stdin:
                     else:
                         current_time = int(tmp[1])
                         instructions = int(tmp[-1])
+                        absolute_instructions = absolute_instructions + instructions
                         absolute_time = float(current_time - reference_time) / 10**9
                         period_time = current_time - prev_time
                         cycles = freq * period_time
                         # Print time in seconds, instructions for the period, cycles for period, ipc
-                        print '%f,%d,%d,%f' % (absolute_time, instructions, cycles, instructions / cycles)
+                        print '%f,%d,%d,%d,%f' % (absolute_time, absolute_instructions, instructions, cycles, instructions / cycles)
                         prev_time = current_time
