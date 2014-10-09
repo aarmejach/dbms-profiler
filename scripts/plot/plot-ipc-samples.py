@@ -43,14 +43,14 @@ def plot_lines_instr(results_perf, results_zsim):
         # Line for perf
         #scaleFactor = len(results_perf[key]['absolute_time']) / 10000
         scaleFactor = 100
-        x = results_perf[key]['absolute_instructions'][::scaleFactor]
+        x = [ float(x)/float(10**9) for x in results_perf[key]['absolute_instructions'][::scaleFactor] ]
         y = results_perf[key]['ipc'][::scaleFactor]
         line_perf = mp.lines.Line2D(x, y, linewidth=1, color='r', label='Real')
 
         # Line for zsim
         #scaleFactor = len(results_zsim[key]['absolute_time']) / 1000
         scaleFactor = 100
-        x = results_zsim[key]['absolute_instructions'][::scaleFactor]
+        x = [ float(x)/float(10**9) for x in results_zsim[key]['absolute_instructions'][::scaleFactor] ]
         y = results_zsim[key]['ipc'][::scaleFactor]
         line_zsim = mp.lines.Line2D(x, y, linewidth=1, color='b', label='Zsim')
 
@@ -63,7 +63,9 @@ def plot_lines_instr(results_perf, results_zsim):
         ax.set_ylabel('IPC', fontsize=16)
         ax.legend()
 
-        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        #plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        plt.title(key, fontsize=16)
+        plt.tight_layout()
 
         if not os.path.exists(fig_dir): os.makedirs(fig_dir)
         plt.savefig("%s/%s-%s.eps" % (fig_dir, 'ipc-samples-instr', '-'.join(key)))
