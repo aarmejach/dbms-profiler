@@ -1,0 +1,101 @@
+#!/bin/bash
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+CONFIGS="baseline base3dcachepred base3dcacheunison"
+APPS="spec_400.perlbench spec_403.gcc spec_416.gamess spec_433.milc spec_435.gromacs spec_437.leslie3d spec_445.gobmk spec_450.soplex spec_454.calculix spec_458.sjeng spec_462.libquantum spec_465.tonto spec_471.omnetpp spec_483.xalancbmk spec_401.bzip2 spec_410.bwaves spec_429.mcf spec_434.zeusmp spec_436.cactusADM spec_444.namd spec_453.povray spec_456.hmmer spec_459.GemsFDTD spec_464.h264ref spec_470.lbm spec_473.astar spec_482.sphinx3 spec-r_400.perlbench spec-r_403.gcc spec-r_416.gamess spec-r_433.milc spec-r_435.gromacs spec-r_437.leslie3d spec-r_445.gobmk spec-r_450.soplex spec-r_454.calculix spec-r_458.sjeng spec-r_462.libquantum spec-r_465.tonto spec-r_471.omnetpp spec-r_483.xalancbmk spec-r_401.bzip2 spec-r_410.bwaves spec-r_429.mcf spec-r_434.zeusmp spec-r_436.cactusADM spec-r_444.namd spec-r_453.povray spec-r_456.hmmer spec-r_459.GemsFDTD spec-r_464.h264ref spec-r_470.lbm spec-r_473.astar spec-r_482.sphinx3 tpch_2 tpch_3 tpch_4 tpch_5 tpch_6 tpch_7 tpch_8 tpch_9 tpch_10 tpch_11 tpch_12 tpch_13 tpch_14 tpch_15 tpch_16 tpch_17 tpch_18 tpch_19 tpch_20 tpch_21 tpch_22 dbt3_1 dbt3_2 dbt3_4 dbt3_8"
+BASE=tests_zsim_
+OUTFILE=/dev/stdout #$DIR/results_check.txt
+RESDIR="/home/aarmejach/projects/AXLE/dbms-profiler/results-zsim"
+
+date > $OUTFILE
+
+for CONFIG in $CONFIGS; do
+    echo "" >> $OUTFILE
+    echo "Check for ${BASE}${CONFIG}" >> $OUTFILE
+    echo "-------------------------------" >> $OUTFILE
+
+    cd ${RESDIR}/${BASE}${CONFIG}
+
+    for APP in $APPS; do
+        file=${APP}_100_
+
+        #Check if simterm file exists
+        if [ ! -e ${file}simterm.txt ]; then
+            echo "Zsim simterm file not found for ${file}, still running?" >> $OUTFILE
+            continue
+        fi
+
+        #Check if GM memory allocation OK
+        grep -i "gm_create failed" ${file}simterm.txt
+        if [ $? -ne 1 ]; then
+            echo "Zsim GM segment memory allocation failed for ${file}" >> $OUTFILE
+            continue
+        fi
+
+        # Check if assert ocurred
+        grep -i assert ${file}simterm.txt
+        if [ $? -ne 1 ]; then
+            #Match found, there is assert trigered
+            echo "Assert found in simterm for ${file}" >> $OUTFILE
+            continue
+        fi
+
+        # Check if assert ocurred
+        grep -i assert ${file}zsim.log*
+        if [ $? -ne 1 ]; then
+            #Match found, there is assert trigered
+            echo "Assert found in simterm for ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check for panic errors
+        grep -i -e panic "${file}simterm.txt" /dev/null
+        if [ $? -ne 1 ]; then
+            echo "Panic error in ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check if zsim stats file exists
+        if [ ! -e ${file}zsim.out ]; then
+            echo "Zsim stats file not found for ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check if mem stats file exists
+        if [ ! -e ${file}mem-0-nvmain.out ]; then
+            echo "Mem stats file not found for ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check if mem stats file has proper size
+        if [ $(stat -c%s "${file}mem-0-nvmain.out") -lt 100 ]; then
+            echo "Mem stats file too small ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check if zsim stats file has proper size
+        if [ $(stat -c%s "${file}zsim.out") -lt 100 ]; then
+            echo "Zsim stats file too small ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check if mem stats is stale file
+        if [ $(($(date -r ${file}simterm.txt +%s)-$(date -r ${file}mem-0-nvmain.out +%s))) -gt 30 ]; then
+            echo "Mem stats file is STALE ${file}" >> $OUTFILE
+            continue
+        fi
+        if [ $(($(date -r ${file}simterm.txt +%s)-$(date -r ${file}zsim.out +%s))) -gt 30 ]; then
+            echo "Zsim stats file is STALE ${file}" >> $OUTFILE
+            continue
+        fi
+
+        #Check for good termination
+        grep "All children done" "${file}simterm.txt" > /dev/null
+        if [ $? -eq 1 ]; then
+            echo "WARN good termination not found for ${file}" >> $OUTFILE
+            continue
+        fi
+
+    done
+done
