@@ -144,7 +144,7 @@ import tempfile, shutil
 tmpdir_huge = tempfile.mkdtemp()
 
 root = "/scratch/nas/1/adria"
-os.system("ssh adria@gaudi 'mkdir -p \"%(dir_prefix)s\"'" % {
+os.system("ssh adria@arvei.ac.upc.edu 'mkdir -p \"%(dir_prefix)s\"'" % {
 	    "dir_prefix": root + "/" + dir_prefix})
 
 for APP in APPS:
@@ -156,14 +156,14 @@ for APP in APPS:
         scriptfile.write(script)
         scriptfile.close()
 
-os.system("rsync -aP %s adria@gaudi:" % tmpdir_huge)
+os.system("rsync -aP %s adria@arvei.ac.upc.edu:" % tmpdir_huge)
 
 # qsub             # submit to "all.q" queue, max 3 hours
 # qsub -l medium   # submit to "medium.q" queue, max 8 hours
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
-os.system("ssh adria@gaudi \"ls %s | xargs -I\\{} qsub -l huge %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
+os.system("ssh adria@arvei.ac.upc.edu \"ls %s | xargs -I\\{} qsub -l huge %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
 
-os.system("ssh adria@gaudi rm -r %s" % os.path.basename(tmpdir_huge))
+os.system("ssh adria@arvei.ac.upc.edu rm -r %s" % os.path.basename(tmpdir_huge))
 
 shutil.rmtree(tmpdir_huge)

@@ -51,7 +51,7 @@ if not opts and len(args)>0:
   print USAGE
   sys.exit(1)
 
-dir_prefix = "tests_zsim_base3dcachepred"
+dir_prefix = "tests_zsim_base3dcacheunison"
 APPS = ALL_APPS
 for o, a in opts:
   if o == "-p":
@@ -74,7 +74,7 @@ elif sys.argv[1] != "all":
 script_template = """#!/bin/sh
 ### Queue manager options
 # Specify a job name
-#$ -N zsim_base3dcachepred_%(APP)s_%(INPUT)s
+#$ -N zsim_base3dcacheunison_%(APP)s_%(INPUT)s
 # Shell
 #$ -S /bin/bash
 # What are the conditions for sending an email
@@ -151,7 +151,7 @@ trap teardown EXIT INT TERM
 ### Config for zsim
 PORT=5443
 let "NEWPORT=$PORT+%(INPUT)s"
-cp $ZSIMPATH/tests/sandy-postgres-3dcache-pred.cfg in.cfg
+cp $ZSIMPATH/tests/sandy-postgres-3dcache-unison.cfg in.cfg
 sed -i "s#PORT#$NEWPORT#g" in.cfg
 sed -i "s#DATADIR#$DATADIR#g" in.cfg
 
