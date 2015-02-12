@@ -4,7 +4,7 @@ BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
 
 USER=adria
-SERVER=gaudi
+SERVER=arvei.ac.upc.edu
 SERVER_HOME=/scratch/nas/1/$USER
 SERVER_DIR=$SERVER:$SERVER_HOME
 
