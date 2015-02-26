@@ -3,6 +3,8 @@
 import sys, os, getopt
 from subprocess import Popen, PIPE
 
+SIMTYPES="base alloy unison".split()
+
 #ALL_APPS = "tpch dbt2 dbt3".split()
 ALL_APPS = "tpch dbt3".split()
 inputs = {
@@ -19,7 +21,7 @@ Submit executions to cluster.
 Optionally saves the results in a specified directory.
 
 Usage:
-%(scriptname)s {all | application} [-d, --directory  directory_name]
+%(scriptname)s {base | alloy | unison} {all | application} [-d, --directory  directory_name]
 
 Arguments:
 First argument is either "all", or a name of one application to run (see below for a list of available applications)
@@ -28,20 +30,20 @@ First argument is either "all", or a name of one application to run (see below f
     be local to this directory.
 
 Examples:
-'%(scriptname)s all' - all applications, all core configurations
-'%(scriptname)s tpch' - runs tpch, all input queries
-'%(scriptname)s tpch -d ideal' - runs tpch, all input queries, in directory "ideal"
+'%(scriptname)s base all' - all applications, all core configurations
+'%(scriptname)s base tpch' - runs tpch, all input queries
+'%(scriptname)s base tpch -d ideal' - runs tpch, all input queries, in directory "ideal"
 
 Available applications: %(apps)s
 """ % { "scriptname": os.path.basename(sys.argv[0]),
         "apps": " ".join(ALL_APPS)}
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     print USAGE
     sys.exit(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[2:], "d:", ["directory"])
+    opts, args = getopt.getopt(sys.argv[3:], "d:", ["directory"])
 except getopt.GetoptError, err:
     # print help information and exit:
     print USAGE
@@ -51,30 +53,33 @@ if not opts and len(args)>0:
   print USAGE
   sys.exit(1)
 
-dir_prefix = "tests_zsim_baseline"
+#Sim type
+if sys.argv[1] in SIMTYPES:
+    SIMTYPE = sys.argv[1]
+else:
+    print USAGE
+    sys.exit(1)
+
+dir_prefix = "tests_zsim_" + SIMTYPE
+
 APPS = ALL_APPS
 for o, a in opts:
-  if o == "-p":
-    if a not in ALL_CORES:
-      print USAGE
-      sys.exit(1)
-    CORES = a.split()
-  elif o == "-d":
+  if o == "-d":
     dir_prefix = "tests_zsim_" + a
   else:
     print o, a
     assert False, "unhandled option" # ...
 
-if sys.argv[1] in ALL_APPS:
-  APPS = [sys.argv[1]]
-elif sys.argv[1] != "all":
+if sys.argv[2] in ALL_APPS:
+  APPS = [sys.argv[2]]
+elif sys.argv[2] != "all":
   print USAGE
   sys.exit(1)
 
 script_template = """#!/bin/sh
 ### Queue manager options
 # Specify a job name
-#$ -N zsim_baseline_%(APP)s_%(INPUT)s
+#$ -N zsim_%(SIMTYPE)s_%(APP)s_%(INPUT)s
 # Shell
 #$ -S /bin/bash
 # What are the conditions for sending an email
@@ -147,7 +152,7 @@ trap teardown EXIT INT TERM
 ### Config for zsim
 PORT=5443
 let "NEWPORT=$PORT+%(INPUT)s"
-cp $ZSIMPATH/tests/sandy-postgres-dram.cfg in.cfg
+cp $ZSIMPATH/tests/sandy-postgres-%(SIMTYPE)s.cfg in.cfg
 sed -i "s#PORT#$NEWPORT#g" in.cfg
 sed -i "s#DATADIR#$DATADIR#g" in.cfg
 
@@ -221,7 +226,7 @@ for APP in APPS:
 	print APP + " " + INPUT
         scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
         scriptfile = file(scriptname, "w")
-        script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE }
+        script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE, "SIMTYPE" : SIMTYPE }
         scriptfile.write(script)
         scriptfile.close()
 
