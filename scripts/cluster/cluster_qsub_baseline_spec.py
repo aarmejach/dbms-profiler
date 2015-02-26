@@ -1,12 +1,19 @@
 #!/usr/bin/python
 
-import sys, os, getopt
+import sys, os, getopt, time
 from subprocess import Popen, PIPE
 
-ALL_APPS = "spec spec-r".split()
+SIMTYPES="base alloy unison".split()
+
+ALL_APPS = "spec spec-r spec-mix".split()
 inputs = { # 447.dealII and 481.wrf not working
-'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
-'spec-r' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split()
+#'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
+#'spec-r' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split()
+'spec' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+
+'spec-r' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+
+'spec-mix' : [('433.milc', '450.soplex', '429.mcf', '473.astar', '482.sphinx3', '403.gcc', '429.mcf', '482.sphinx3'), ('429.mcf', '471.omnetpp', '459.GemsFDTD', '470.lbm', '482.sphinx3', '450.soplex', '459.GemsFDTD', '470.lbm'), ('433.milc', '450.soplex', '473.astar', '482.sphinx3', '403.gcc', '410.bwaves', '450.soplex', '410.bwaves'), ('459.GemsFDTD', '433.milc', '471.omnetpp', '410.bwaves', '482.sphinx3', '410.bwaves', '429.mcf', '482.sphinx3'), ('471.omnetpp', '410.bwaves', '459.GemsFDTD', '437.leslie3d', '470.lbm', '433.milc', '471.omnetpp', '410.bwaves'), ('437.leslie3d', '471.omnetpp', '429.mcf', '470.lbm', '433.milc', '471.omnetpp', '433.milc', '437.leslie3d'), ('403.gcc', '410.bwaves', '429.mcf', '482.sphinx3', '473.astar', '403.gcc', '433.milc', '410.bwaves'), ('470.lbm', '433.milc', '437.leslie3d', '470.lbm', '482.sphinx3', '462.libquantum', '471.omnetpp', '470.lbm'), ('471.omnetpp', '459.GemsFDTD', '403.gcc', '450.soplex', '410.bwaves', '429.mcf', '429.mcf', '470.lbm'), ('462.libquantum', '410.bwaves', '459.GemsFDTD', '470.lbm', '437.leslie3d', '471.omnetpp', '433.milc', '450.soplex'), ('450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '473.astar', '482.sphinx3', '470.lbm'), ('403.gcc', '429.mcf', '459.GemsFDTD', '471.omnetpp', '470.lbm', '450.soplex', '459.GemsFDTD', '470.lbm'), ('433.milc', '437.leslie3d', '462.libquantum', '471.omnetpp', '410.bwaves', '473.astar', '403.gcc', '462.libquantum'), ('450.soplex', '462.libquantum', '473.astar', '462.libquantum', '459.GemsFDTD', '462.libquantum', '473.astar', '482.sphinx3'), ('433.milc', '462.libquantum', '471.omnetpp', '462.libquantum', '471.omnetpp', '410.bwaves', '450.soplex', '429.mcf'), ('403.gcc', '433.milc', '450.soplex', '410.bwaves', '473.astar', '433.milc', '450.soplex', '470.lbm'), ('437.leslie3d', '471.omnetpp', '429.mcf', '473.astar', '482.sphinx3', '471.omnetpp', '450.soplex', '459.GemsFDTD'), ('403.gcc', '437.leslie3d', '403.gcc', '450.soplex', '473.astar', '433.milc', '410.bwaves', '470.lbm'), ('403.gcc', '437.leslie3d', '462.libquantum', '459.GemsFDTD', '403.gcc', '410.bwaves', '429.mcf', '482.sphinx3'), ('403.gcc', '462.libquantum', '403.gcc', '433.milc', '450.soplex', '429.mcf', '403.gcc', '433.milc'), ('403.gcc', '433.milc', '437.leslie3d', '429.mcf', '403.gcc', '462.libquantum', '459.GemsFDTD', '473.astar'), ('471.omnetpp', '470.lbm', '433.milc', '437.leslie3d', '459.GemsFDTD', '450.soplex', '429.mcf', '473.astar'), ('437.leslie3d', '433.milc', '470.lbm', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf', '473.astar'), ('471.omnetpp', '482.sphinx3', '410.bwaves', '473.astar', '437.leslie3d', '429.mcf', '470.lbm', '473.astar'), ('462.libquantum', '410.bwaves', '470.lbm', '473.astar', '433.milc', '459.GemsFDTD', '473.astar', '482.sphinx3'), ('433.milc', '429.mcf', '403.gcc', '433.milc', '462.libquantum', '482.sphinx3', '433.milc', '470.lbm'), ('403.gcc', '482.sphinx3', '429.mcf', '482.sphinx3', '471.omnetpp', '410.bwaves', '429.mcf', '482.sphinx3'), ('410.bwaves', '459.GemsFDTD', '470.lbm', '462.libquantum', '473.astar', '450.soplex', '470.lbm', '482.sphinx3'), ('403.gcc', '433.milc', '450.soplex', '410.bwaves', '470.lbm', '437.leslie3d', '403.gcc', '459.GemsFDTD'), ('450.soplex', '429.mcf', '470.lbm', '403.gcc', '433.milc', '471.omnetpp', '459.GemsFDTD', '450.soplex'), ('403.gcc', '459.GemsFDTD', '433.milc', '437.leslie3d', '437.leslie3d', '450.soplex', '462.libquantum', '470.lbm'), ('433.milc', '437.leslie3d', '433.milc', '403.gcc', '462.libquantum', '429.mcf', '470.lbm', '482.sphinx3')]
 }
 
 # Specify only 1 scale
@@ -17,7 +24,7 @@ Submit executions to cluster.
 Optionally saves the results in a specified directory.
 
 Usage:
-%(scriptname)s {all | application} [-d, --directory  directory_name]
+%(scriptname)s {base | alloy | unison} {all | application} [-d, --directory  directory_name]
 
 Arguments:
 First argument is either "all", or a name of one application to run (see below for a list of available applications)
@@ -26,20 +33,21 @@ First argument is either "all", or a name of one application to run (see below f
     be local to this directory.
 
 Examples:
-'%(scriptname)s all' - all applications, all core configurations
-'%(scriptname)s tpch' - runs tpch, all input queries
-'%(scriptname)s tpch -d ideal' - runs tpch, all input queries, in directory "ideal"
+'%(scriptname)s base all' - all applications, all core configurations
+'%(scriptname)s base tpch' - runs tpch, all input queries
+'%(scriptname)s base tpch -d ideal' - runs tpch, all input queries, in directory "ideal"
 
 Available applications: %(apps)s
 """ % { "scriptname": os.path.basename(sys.argv[0]),
         "apps": " ".join(ALL_APPS)}
 
-if len(sys.argv) < 2:
+# Regular param check
+if len(sys.argv) < 3:
     print USAGE
     sys.exit(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[2:], "d:", ["directory"])
+    opts, args = getopt.getopt(sys.argv[3:], "d:", ["directory"])
 except getopt.GetoptError, err:
     # print help information and exit:
     print USAGE
@@ -49,30 +57,33 @@ if not opts and len(args)>0:
   print USAGE
   sys.exit(1)
 
-dir_prefix = "tests_zsim_baseline"
+#Sim type
+if sys.argv[1] in SIMTYPES:
+    SIMTYPE = sys.argv[1]
+else:
+    print USAGE
+    sys.exit(1)
+
+dir_prefix = "tests_zsim_" + SIMTYPE
+
 APPS = ALL_APPS
 for o, a in opts:
-  if o == "-p":
-    if a not in ALL_CORES:
-      print USAGE
-      sys.exit(1)
-    CORES = a.split()
-  elif o == "-d":
+  if o == "-d":
     dir_prefix = "tests_zsim_" + a
   else:
     print o, a
     assert False, "unhandled option" # ...
 
-if sys.argv[1] in ALL_APPS:
-  APPS = [sys.argv[1]]
-elif sys.argv[1] != "all":
+if sys.argv[2] in ALL_APPS:
+  APPS = [sys.argv[2]]
+elif sys.argv[2] != "all":
   print USAGE
   sys.exit(1)
 
 script_template = """#!/bin/sh
 ### Queue manager options
 # Specify a job name
-#$ -N zsim_baseline_%(APP)s_%(INPUT)s
+#$ -N zsim_%(SIMTYPE)s_%(APP)s_%(NUMBER)s
 # Shell
 #$ -S /bin/bash
 # What are the conditions for sending an email
@@ -105,7 +116,7 @@ LOCALHOME=/users/scratch/adria
 RES=$NAS_HOME/results-zsim/%(PREFIX)s
 mkdir -p $RES
 
-TESTCONFIG=%(APP)s_%(INPUT)s_%(SCALE)s
+TESTCONFIG="%(APP)s_%(WLNAME)s_%(SCALE)s"
 mkdir -p $TESTHOME/$TESTCONFIG
 cd $TESTHOME/$TESTCONFIG
 
@@ -113,22 +124,47 @@ ulimit -c 0
 
 ### Config for zsim
 if [ "%(APP)s" == "spec" ]; then
-    cp $ZSIMPATH/tests/sandy-spec-dram.cfg in.cfg
+    cp $ZSIMPATH/tests/sandy-spec-%(SIMTYPE)s.cfg in.cfg
+
+    ### Uncomment command lines
+    sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
+
+    ### Copy spec workload over using symlinks
+    ln -s $SPECDIR/build/%(INPUT)s/* .
+
 elif [ "%(APP)s" == "spec-r" ]; then
-    cp $ZSIMPATH/tests/sandy-spec-multi-dram.cfg in.cfg
+    cp $ZSIMPATH/tests/sandy-spec-multi-%(SIMTYPE)s.cfg in.cfg
+
+    ### Uncomment command lines
+    sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
+
+    ### Copy spec workload over using symlinks
+    ln -s $SPECDIR/build/%(INPUT)s/* .
+
+elif [ "%(APP)s" == "spec-mix" ]; then
+    cp $ZSIMPATH/tests/sandy-spec-multi-%(SIMTYPE)s.cfg in.cfg
+
+    i=0
+    for WL in %(INPUT)s; do
+        ### Uncomment command lines
+        sed -i "/$WL$i/s/^\ \ #/\ \ /" in.cfg
+
+        ### Copy spec workload over using symlinks
+        ln -sf $SPECDIR/build/$WL/* .
+
+        i=$((i+1))
+    done
 fi
-
-sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
-
-### Copy spec workload over using symlinks
-ln -s $SPECDIR/build/%(INPUT)s/* .
 
 ### Execute Zsim
 $ZSIMPATH/build/opt/zsim in.cfg &> simterm.txt
 
+if grep --quiet "gm_create failed" simterm.txt; then
+    touch "../%(APP)s_script%(NUMBER)s"
+fi
+
 ### Remove spec symlinks
 find . -type l | xargs rm -r
-
 
 ### Sleep some more to allow sim to cleanup and move results
 sleep 10
@@ -144,17 +180,21 @@ import tempfile, shutil
 tmpdir_huge = tempfile.mkdtemp()
 
 root = "/scratch/nas/1/adria"
-os.system("ssh adria@arvei.ac.upc.edu 'mkdir -p \"%(dir_prefix)s\"'" % {
-	    "dir_prefix": root + "/" + dir_prefix})
+#os.system("ssh adria@arvei.ac.upc.edu 'rm -rf \"%(dir_prefix)s\"'" % { "dir_prefix" : root + "/" + dir_prefix })
+os.system("ssh adria@arvei.ac.upc.edu 'mkdir -p \"%(dir_prefix)s\"'" % { "dir_prefix" : root + "/" + dir_prefix })
 
+i=0
 for APP in APPS:
     for INPUT in inputs[APP]:
-	print APP + " " + INPUT
-        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, INPUT, SCALE))
+        if type(INPUT) is str:
+            INPUT = (INPUT,)
+	print APP + " " + str(INPUT)
+        scriptname = os.path.join(tmpdir_huge, "%s_%s_%s_%s.sh" % (dir_prefix, APP, "script"+str(i), SCALE))
         scriptfile = file(scriptname, "w")
-        script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : INPUT, "pf" : "%02d", "SCALE" : SCALE }
+        script = script_template % { "PREFIX": dir_prefix, "APP" : APP, "INPUT" : " ".join(INPUT), "pf" : "%02d", "SCALE" : SCALE, "NUMBER" : i, "WLNAME" : "-".join(INPUT), "SIMTYPE" : SIMTYPE }
         scriptfile.write(script)
         scriptfile.close()
+        i=i+1
 
 os.system("rsync -aP %s adria@arvei.ac.upc.edu:" % tmpdir_huge)
 
@@ -163,6 +203,11 @@ os.system("rsync -aP %s adria@arvei.ac.upc.edu:" % tmpdir_huge)
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
 os.system("ssh adria@arvei.ac.upc.edu \"ls %s | xargs -I\\{} qsub -l huge %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
+
+# Wait and re-launch dead simulations
+home = "/homeA/a/adria"
+os.system("ssh adria@arvei.ac.upc.edu 'sleep 60'")
+os.system("ssh adria@arvei.ac.upc.edu 'cd %(dir_prefix)s && while ls *script*; do for f in `ls *script*`; do echo $f && qsub -l huge %(TMPDIR)s/*$f* && rm $f; done; sleep 30; done'" % { "dir_prefix" : root + "/" + dir_prefix, "TMPDIR" : home + "/" + os.path.basename(tmpdir_huge) })
 
 os.system("ssh adria@arvei.ac.upc.edu rm -r %s" % os.path.basename(tmpdir_huge))
 
