@@ -6,7 +6,7 @@ from subprocess import Popen, PIPE
 SIMTYPES="base alloy unison".split()
 
 #ALL_APPS = "tpch dbt2 dbt3".split()
-ALL_APPS = "tpch dbt3".split()
+ALL_APPS = "dbt3".split()
 inputs = {
 'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
 'dbt3' : "1 2 4 8".split(),
@@ -236,7 +236,7 @@ os.system("rsync -aP %s adria@arvei.ac.upc.edu:" % tmpdir_huge)
 # qsub -l medium   # submit to "medium.q" queue, max 8 hours
 # qsub -l big      # submit to "big.q" queue, max 48 hours
 # qsub -l huge node2012=1 exclusive_job=1      # submit to "big.q" queue, max 48 hours
-os.system("ssh adria@arvei.ac.upc.edu \"ls %s | xargs -I\\{} qsub -l huge,node2012=1,no_concurrent_adria=1 %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
+os.system("ssh adria@arvei.ac.upc.edu \"ls %s | xargs -I\\{} qsub -l huge,node2014=1,no_concurrent_adria=1 %s/\\{} \"" % (os.path.basename(tmpdir_huge),os.path.basename(tmpdir_huge)))
 
 os.system("ssh adria@arvei.ac.upc.edu rm -r %s" % os.path.basename(tmpdir_huge))
 
