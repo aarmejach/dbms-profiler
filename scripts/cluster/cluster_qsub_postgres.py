@@ -3,18 +3,19 @@
 import sys, os, getopt
 from subprocess import Popen, PIPE
 
-SIMTYPES="base alloy unison".split()
+SIMTYPES="base alloy unison tpc footprint tidy".split()
 
 #ALL_APPS = "tpch dbt2 dbt3".split()
-ALL_APPS = "dbt3".split()
+ALL_APPS = "dbt3 dbt2".split()
 inputs = {
 'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
-'dbt3' : "1 2 4 8".split(),
-'dbt2' : "16 32 64".split()
+#'dbt3' : "1 2 4 8".split(),
+'dbt3' : "1 8".split(),
+'dbt2' : "16".split()
 }
 
 # Specify only 1 scale
-SCALE = 100
+SCALE = 10
 
 USAGE = """
 Submit executions to cluster.
@@ -114,6 +115,8 @@ export PGPATH=$NAS_HOME/postgres
 export BOOST=$NAS_HOME/boost
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib:$NAS_HOME/icu/source/lib
 export PATH=$PGPATH/build/bin:$PATH
+export PGHOST=localhost
+export DBT2BIN=/scratch/nas/1/adria/dbt2/bin
 
 TESTHOME=$NAS_HOME/%(PREFIX)s
 LOCALHOME=/users/scratch/adria
@@ -131,8 +134,15 @@ QUERIESDIR=$NAS_HOME/queries/pgsql/
 
 ### Get data dir
 if [ "%(APP)s" == "dbt2" ]; then
-    DBDIR=pgdata100WH-dbt2
+    DBDIR=pgdata40WH-dbt2
     DBNAME=dbt2
+
+    rm -r $LOCALHOME/$DBDIR
+    mkdir -p $LOCALHOME/$DBDIR
+    rsync -aP --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
+
+    DATADIR=$LOCALHOME/$DBDIR
+    chmod 700 $DATADIR
 else
     DBDIR=pgdata%(SCALE)sGB-tpch
     DBNAME=tpch
@@ -189,8 +199,11 @@ elif [ "%(APP)s" == "dbt3" ]; then
     done
 
 else
-    #TODO dbt2
-    : #nop
+    sleep 10
+    VPORT=`grep "Virtualized bind" zsim.log.0| cut -f 8 -d " "`
+    PGPID=`grep "Started process" zsim.log.0 | cut -d " " -f 6`
+    $DBT2BIN/dbt2-run-workload -a pgsql -d 12000 -w 40 -c 16 -l $VPORT -o results -N -n -i $PGPID 2> dbt2_output.stderr > dbt2_output.stdout &
+    DBT2PID=$!
 fi
 
 # Wait for all pending streams to finish.
@@ -201,11 +214,16 @@ for p in $(jobs -p); do
 done
 
 # Stop server
-sleep 5
+sleep 20
 pg_ctl stop -w -D ${DATADIR}
+sleep 30
+
+if [ "%(APP)s" == "dbt2" ]; then
+    kill $DBT2PID
+fi
 
 # Sleep some more to allow sim to cleanup and move results
-sleep 10
+sleep 30
 for file in *; do
     mv $file "$RES/${TESTCONFIG}_$file"
 done
