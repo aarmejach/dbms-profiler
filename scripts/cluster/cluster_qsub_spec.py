@@ -3,17 +3,138 @@
 import sys, os, getopt, time
 from subprocess import Popen, PIPE
 
-SIMTYPES="base alloy unison".split()
+SIMTYPES="base alloy unison tpc footprint tidy".split()
 
-ALL_APPS = "spec spec-r spec-mix".split()
+ALL_APPS = "spec spec-r spec-mix spec-mix2 spec-mix3 bigmem bigmem-mix".split()
 inputs = { # 447.dealII and 481.wrf not working
 #'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
 #'spec-r' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split()
-'spec' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+'spec' : "403.gcc 433.milc 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 482.sphinx3".split(),
 
-'spec-r' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+#'spec-r' : "403.gcc 433.milc 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 482.sphinx3".split(),
+'spec-r' : "462.libquantum".split(),
 
-'spec-mix' : [('403.gcc', '403.gcc', '403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '459.GemsFDTD', '459.GemsFDTD'), ('433.milc', '437.leslie3d', '437.leslie3d', '429.mcf', '429.mcf', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD'), ('433.milc', '433.milc', '433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '471.omnetpp', '471.omnetpp'), ('403.gcc', '403.gcc', '403.gcc', '403.gcc', '433.milc', '437.leslie3d', '471.omnetpp', '459.GemsFDTD'), ('433.milc', '450.soplex', '450.soplex', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3'), ('462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD', '470.lbm', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '459.GemsFDTD'), ('433.milc', '429.mcf', '470.lbm', '470.lbm', '482.sphinx3', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '473.astar'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '462.libquantum', '462.libquantum', '470.lbm', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '450.soplex', '462.libquantum', '462.libquantum', '471.omnetpp', '473.astar'), ('433.milc', '450.soplex', '429.mcf', '429.mcf', '429.mcf', '429.mcf', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '437.leslie3d', '462.libquantum', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '482.sphinx3'), ('403.gcc', '450.soplex', '450.soplex', '471.omnetpp', '470.lbm', '470.lbm', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '470.lbm', '470.lbm', '470.lbm'), ('403.gcc', '433.milc', '450.soplex', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf', '473.astar'), ('433.milc', '433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '459.GemsFDTD', '459.GemsFDTD', '470.lbm'), ('403.gcc', '437.leslie3d', '450.soplex', '429.mcf', '473.astar', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '429.mcf', '473.astar', '482.sphinx3', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '470.lbm'), ('433.milc', '437.leslie3d', '473.astar', '473.astar', '473.astar', '473.astar', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '450.soplex', '462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '470.lbm'), ('403.gcc', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3', '482.sphinx3'), ('450.soplex', '462.libquantum', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '403.gcc', '433.milc', '429.mcf', '470.lbm', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '437.leslie3d', '437.leslie3d', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '429.mcf', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '403.gcc', '403.gcc', '403.gcc', '403.gcc', '429.mcf', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '471.omnetpp', '429.mcf', '429.mcf', '429.mcf'), ('450.soplex', '450.soplex', '429.mcf', '470.lbm', '470.lbm', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm'), ('403.gcc', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '473.astar', '482.sphinx3'), ('403.gcc', '403.gcc', '437.leslie3d', '450.soplex', '471.omnetpp', '471.omnetpp', '429.mcf', '459.GemsFDTD'), ('403.gcc', '433.milc', '450.soplex', '450.soplex', '459.GemsFDTD', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '433.milc', '433.milc', '437.leslie3d', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf'), ('403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '429.mcf', '429.mcf', '429.mcf', '473.astar'), ('433.milc', '433.milc', '437.leslie3d', '450.soplex', '450.soplex', '471.omnetpp', '429.mcf', '470.lbm'), ('403.gcc', '433.milc', '433.milc', '433.milc', '450.soplex', '450.soplex', '470.lbm', '473.astar'), ('433.milc', '433.milc', '450.soplex', '450.soplex', '450.soplex', '450.soplex', '471.omnetpp', '482.sphinx3'), ('403.gcc', '403.gcc', '471.omnetpp', '429.mcf', '429.mcf', '470.lbm', '473.astar', '482.sphinx3'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '462.libquantum', '471.omnetpp', '470.lbm'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '429.mcf', '473.astar'), ('403.gcc', '433.milc', '471.omnetpp', '429.mcf', '470.lbm', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '433.milc', '433.milc', '433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm'), ('403.gcc', '403.gcc', '437.leslie3d', '437.leslie3d', '450.soplex', '459.GemsFDTD', '459.GemsFDTD', '473.astar'), ('403.gcc', '433.milc', '471.omnetpp', '429.mcf', '429.mcf', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3'), ('433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('450.soplex', '450.soplex', '471.omnetpp', '429.mcf', '473.astar', '473.astar', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '470.lbm'), ('403.gcc', '437.leslie3d', '437.leslie3d', '462.libquantum', '462.libquantum', '459.GemsFDTD', '459.GemsFDTD', '470.lbm'), ('403.gcc', '403.gcc', '450.soplex', '429.mcf', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), ('403.gcc', '462.libquantum', '471.omnetpp', '471.omnetpp', '429.mcf', '429.mcf', '473.astar', '482.sphinx3'), ('437.leslie3d', '437.leslie3d', '450.soplex', '450.soplex', '450.soplex', '459.GemsFDTD', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '470.lbm', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '450.soplex', '470.lbm', '470.lbm', '470.lbm', '482.sphinx3'), ('462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf', '429.mcf', '473.astar', '482.sphinx3'), ('433.milc', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '470.lbm', '473.astar'), ('433.milc', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp', '429.mcf', '470.lbm', '473.astar'), ('433.milc', '433.milc', '450.soplex', '450.soplex', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp'), ('433.milc', '433.milc', '433.milc', '462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '470.lbm'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf'), ('433.milc', '433.milc', '437.leslie3d', '437.leslie3d', '429.mcf', '470.lbm', '470.lbm', '473.astar'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '429.mcf', '470.lbm')]
+#'bigmem' : "stream graph500 nascg nasmg".split(),
+'bigmem' : "graph500".split(),
+
+'bigmem-mix' : [
+('stream', 'graph500'),
+('stream', 'nasmg'),
+('stream', 'nascg'),
+('graph500', 'nascg'),
+('graph500', 'nasmg'),
+('nascg', 'nasmg')
+],
+
+'spec-mix' : [
+('403.gcc', '450.soplex', '462.libquantum', '459.GemsFDTD', '470.lbm', '403.gcc', '462.libquantum', '470.lbm'), 
+('403.gcc', '433.milc', '429.mcf', '403.gcc', '462.libquantum', '429.mcf', '459.GemsFDTD', '482.sphinx3'), 
+('433.milc', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '433.milc', '429.mcf', '459.GemsFDTD'), 
+('433.milc', '470.lbm', '403.gcc', '433.milc', '450.soplex', '462.libquantum', '471.omnetpp', '459.GemsFDTD'), 
+('403.gcc', '433.milc', '482.sphinx3', '433.milc', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '482.sphinx3', '471.omnetpp', '470.lbm', '482.sphinx3'), 
+('433.milc', '429.mcf', '459.GemsFDTD', '403.gcc', '433.milc', '462.libquantum', '459.GemsFDTD', '482.sphinx3'), 
+('450.soplex', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm', '433.milc', '471.omnetpp', '429.mcf'), 
+('433.milc', '450.soplex', '462.libquantum', '470.lbm', '482.sphinx3', '450.soplex', '462.libquantum', '429.mcf'), 
+('403.gcc', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3', '403.gcc', '433.milc'), 
+('403.gcc', '433.milc', '429.mcf', '459.GemsFDTD', '470.lbm', '403.gcc', '450.soplex', '459.GemsFDTD'), 
+('471.omnetpp', '433.milc', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '482.sphinx3'), 
+('403.gcc', '450.soplex', '429.mcf', '482.sphinx3', '403.gcc', '450.soplex', '429.mcf', '459.GemsFDTD'), 
+('403.gcc', '433.milc', '450.soplex', '470.lbm', '450.soplex', '462.libquantum', '429.mcf', '470.lbm'), 
+('433.milc', '450.soplex', '429.mcf', '403.gcc', '433.milc', '471.omnetpp', '459.GemsFDTD', '470.lbm'), 
+('403.gcc', '482.sphinx3', '403.gcc', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm'), 
+('450.soplex', '471.omnetpp', '433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('433.milc', '450.soplex', '462.libquantum', '459.GemsFDTD', '403.gcc', '433.milc', '450.soplex', '462.libquantum'), 
+('403.gcc', '433.milc', '462.libquantum', '470.lbm', '433.milc', '450.soplex', '471.omnetpp', '459.GemsFDTD'), 
+('403.gcc', '450.soplex', '462.libquantum', '429.mcf', '459.GemsFDTD', '482.sphinx3', '433.milc', '470.lbm'), 
+('450.soplex', '462.libquantum', '482.sphinx3', '403.gcc', '450.soplex', '462.libquantum', '459.GemsFDTD', '470.lbm'), 
+('459.GemsFDTD', '470.lbm', '482.sphinx3', '403.gcc', '433.milc', '450.soplex', '462.libquantum', '471.omnetpp'), 
+('403.gcc', '450.soplex', '462.libquantum', '403.gcc', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('450.soplex', '462.libquantum', '429.mcf', '470.lbm', '403.gcc', '471.omnetpp', '429.mcf', '459.GemsFDTD'), 
+('450.soplex', '429.mcf', '470.lbm', '482.sphinx3', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm'), 
+('433.milc', '450.soplex', '471.omnetpp', '470.lbm', '482.sphinx3', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('450.soplex', '471.omnetpp', '470.lbm', '403.gcc', '433.milc', '450.soplex', '429.mcf', '459.GemsFDTD'), 
+('403.gcc', '433.milc', '450.soplex', '471.omnetpp', '450.soplex', '471.omnetpp', '429.mcf', '470.lbm'), 
+('433.milc', '450.soplex', '459.GemsFDTD', '482.sphinx3', '433.milc', '471.omnetpp', '429.mcf', '482.sphinx3'), 
+('450.soplex', '459.GemsFDTD', '470.lbm', '403.gcc', '433.milc', '462.libquantum', '459.GemsFDTD', '470.lbm'), 
+('403.gcc', '462.libquantum', '471.omnetpp', '429.mcf', '482.sphinx3', '403.gcc', '429.mcf', '470.lbm'), 
+('459.GemsFDTD', '433.milc', '450.soplex', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('433.milc', '450.soplex', '471.omnetpp', '459.GemsFDTD', '450.soplex', '471.omnetpp', '429.mcf', '459.GemsFDTD'), 
+('403.gcc', '471.omnetpp', '470.lbm', '482.sphinx3', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm'), 
+('433.milc', '450.soplex', '462.libquantum', '429.mcf', '459.GemsFDTD', '433.milc', '471.omnetpp', '459.GemsFDTD'), 
+('403.gcc', '433.milc', '450.soplex', '403.gcc', '433.milc', '450.soplex', '462.libquantum', '429.mcf'), 
+('450.soplex', '470.lbm', '450.soplex', '462.libquantum', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('433.milc', '450.soplex', '471.omnetpp', '403.gcc', '433.milc', '462.libquantum', '470.lbm', '482.sphinx3'), 
+('403.gcc', '433.milc', '450.soplex', '482.sphinx3', '403.gcc', '433.milc', '459.GemsFDTD', '482.sphinx3'), 
+('450.soplex', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3', '450.soplex', '471.omnetpp', '459.GemsFDTD'), 
+('450.soplex', '471.omnetpp', '470.lbm', '403.gcc', '433.milc', '450.soplex', '459.GemsFDTD', '470.lbm'), 
+('471.omnetpp', '429.mcf', '470.lbm', '403.gcc', '450.soplex', '462.libquantum', '429.mcf', '459.GemsFDTD'), 
+('433.milc', '471.omnetpp', '459.GemsFDTD', '470.lbm', '482.sphinx3', '403.gcc', '450.soplex', '482.sphinx3'), 
+('433.milc', '450.soplex', '433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('471.omnetpp', '429.mcf', '470.lbm', '433.milc', '450.soplex', '462.libquantum', '471.omnetpp', '482.sphinx3'), 
+('471.omnetpp', '470.lbm', '482.sphinx3', '433.milc', '450.soplex', '471.omnetpp', '429.mcf', '470.lbm'), 
+('450.soplex', '462.libquantum', '459.GemsFDTD', '482.sphinx3', '403.gcc', '462.libquantum', '471.omnetpp', '482.sphinx3'), 
+('433.milc', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '482.sphinx3'), 
+('429.mcf', '470.lbm', '403.gcc', '433.milc', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD'), 
+('450.soplex', '462.libquantum', '459.GemsFDTD', '470.lbm', '482.sphinx3', '433.milc', '459.GemsFDTD', '470.lbm'), 
+('471.omnetpp', '459.GemsFDTD', '470.lbm', '482.sphinx3', '403.gcc', '429.mcf', '470.lbm', '482.sphinx3'), 
+('433.milc', '450.soplex', '459.GemsFDTD', '482.sphinx3', '403.gcc', '459.GemsFDTD', '470.lbm', '482.sphinx3'), 
+('403.gcc', '433.milc', '450.soplex', '459.GemsFDTD', '470.lbm', '429.mcf', '470.lbm', '482.sphinx3'), 
+('462.libquantum', '429.mcf', '459.GemsFDTD', '482.sphinx3', '403.gcc', '462.libquantum', '429.mcf', '482.sphinx3'), 
+('403.gcc', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '482.sphinx3'), 
+('403.gcc', '450.soplex', '471.omnetpp', '429.mcf', '459.GemsFDTD', '470.lbm', '403.gcc', '462.libquantum'), 
+('403.gcc', '450.soplex', '471.omnetpp', '482.sphinx3', '403.gcc', '462.libquantum', '459.GemsFDTD', '470.lbm'), 
+('450.soplex', '462.libquantum', '429.mcf', '482.sphinx3', '403.gcc', '450.soplex', '462.libquantum', '482.sphinx3'), 
+('403.gcc', '433.milc', '450.soplex', '429.mcf', '470.lbm', '482.sphinx3', '403.gcc', '470.lbm'), 
+('433.milc', '450.soplex', '462.libquantum', '471.omnetpp', '403.gcc', '450.soplex', '471.omnetpp', '429.mcf'), 
+('403.gcc', '459.GemsFDTD', '482.sphinx3', '450.soplex', '471.omnetpp', '429.mcf', '459.GemsFDTD', '482.sphinx3'), 
+('433.milc', '462.libquantum', '471.omnetpp', '470.lbm', '482.sphinx3', '471.omnetpp', '429.mcf', '482.sphinx3'), 
+('433.milc', '450.soplex', '429.mcf', '403.gcc', '450.soplex', '471.omnetpp', '470.lbm', '482.sphinx3'), 
+('403.gcc', '450.soplex', '471.omnetpp', '459.GemsFDTD', '470.lbm', '433.milc', '459.GemsFDTD', '470.lbm')
+],
+
+'spec-mix2' : [
+        ('459.GemsFDTD', '470.lbm', '482.sphinx3', '459.GemsFDTD', '470.lbm', '403.gcc', '450.soplex', '482.sphinx3'), 
+        ('462.libquantum', '470.lbm', '482.sphinx3', '482.sphinx3', '471.omnetpp', '482.sphinx3', '470.lbm', '482.sphinx3'), 
+        ('433.milc', '450.soplex', '450.soplex', '462.libquantum', '459.GemsFDTD', '450.soplex', '429.mcf', '482.sphinx3'), 
+        ('470.lbm', '403.gcc', '450.soplex', '403.gcc', '433.milc', '459.GemsFDTD', '470.lbm', '482.sphinx3'), ('433.milc', '459.GemsFDTD', '403.gcc', '403.gcc', '450.soplex', '470.lbm', '482.sphinx3', '459.GemsFDTD'), ('403.gcc', '429.mcf', '482.sphinx3', '462.libquantum', '459.GemsFDTD', '482.sphinx3', '482.sphinx3', '471.omnetpp'), ('450.soplex', '462.libquantum', '429.mcf', '470.lbm', '482.sphinx3', '459.GemsFDTD', '450.soplex', '471.omnetpp'), ('462.libquantum', '433.milc', '462.libquantum', '429.mcf', '459.GemsFDTD', '433.milc', '459.GemsFDTD', '470.lbm'), ('403.gcc', '433.milc', '450.soplex', '429.mcf', '470.lbm', '482.sphinx3', '429.mcf', '403.gcc'), ('433.milc', '471.omnetpp', '470.lbm', '403.gcc', '433.milc', '471.omnetpp', '482.sphinx3', '450.soplex'), ('462.libquantum', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '403.gcc', '462.libquantum', '429.mcf'), ('470.lbm', '462.libquantum', '471.omnetpp', '433.milc', '450.soplex', '462.libquantum', '429.mcf', '470.lbm'), ('471.omnetpp', '429.mcf', '429.mcf', '459.GemsFDTD', '403.gcc', '471.omnetpp', '459.GemsFDTD', '471.omnetpp'), ('433.milc', '470.lbm', '482.sphinx3', '403.gcc', '462.libquantum', '403.gcc', '471.omnetpp', '450.soplex'), ('403.gcc', '462.libquantum', '482.sphinx3', '471.omnetpp', '459.GemsFDTD', '470.lbm', '429.mcf', '429.mcf'), ('450.soplex', '429.mcf', '470.lbm', '403.gcc', '459.GemsFDTD', '462.libquantum', '471.omnetpp', '482.sphinx3'), ('429.mcf', '450.soplex', '470.lbm', '403.gcc', '433.milc', '429.mcf', '482.sphinx3', '429.mcf'), ('433.milc', '450.soplex', '462.libquantum', '482.sphinx3', '433.milc', '462.libquantum', '459.GemsFDTD', '450.soplex'), ('433.milc', '471.omnetpp', '482.sphinx3', '450.soplex', '403.gcc', '482.sphinx3', '450.soplex', '462.libquantum'), ('459.GemsFDTD', '433.milc', '471.omnetpp', '450.soplex', '482.sphinx3', '403.gcc', '450.soplex', '482.sphinx3'), ('462.libquantum', '470.lbm', '450.soplex', '462.libquantum', '482.sphinx3', '462.libquantum', '403.gcc', '459.GemsFDTD'), ('403.gcc', '450.soplex', '462.libquantum', '433.milc', '403.gcc', '433.milc', '429.mcf', '459.GemsFDTD'), ('482.sphinx3', '459.GemsFDTD', '482.sphinx3', '433.milc', '462.libquantum', '482.sphinx3', '450.soplex', '471.omnetpp'), ('462.libquantum', '470.lbm', '403.gcc', '482.sphinx3', '471.omnetpp', '429.mcf', '482.sphinx3', '450.soplex'), ('450.soplex', '403.gcc', '462.libquantum', '471.omnetpp', '429.mcf', '450.soplex', '459.GemsFDTD', '482.sphinx3'), ('433.milc', '462.libquantum', '429.mcf', '462.libquantum', '470.lbm', '433.milc', '450.soplex', '429.mcf'), ('403.gcc', '462.libquantum', '429.mcf', '482.sphinx3', '459.GemsFDTD', '433.milc', '450.soplex', '459.GemsFDTD'), ('470.lbm', '471.omnetpp', '403.gcc', '429.mcf', '459.GemsFDTD', '471.omnetpp', '429.mcf', '459.GemsFDTD'), ('470.lbm', '450.soplex', '462.libquantum', '471.omnetpp', '470.lbm', '462.libquantum', '471.omnetpp', '429.mcf'), ('403.gcc', '429.mcf', '482.sphinx3', '471.omnetpp', '450.soplex', '450.soplex', '462.libquantum', '470.lbm'), ('429.mcf', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '462.libquantum', '459.GemsFDTD', '470.lbm'), ('429.mcf', '482.sphinx3', '450.soplex', '429.mcf', '482.sphinx3', '462.libquantum', '482.sphinx3', '459.GemsFDTD')],
+
+'spec-mix3' : [
+        ('450.soplex', '459.GemsFDTD', '403.gcc', '433.milc', '471.omnetpp', '437.leslie3d', '470.lbm', '437.leslie3d'),
+        ('433.milc', '450.soplex', '462.libquantum', '470.lbm', '433.milc', '450.soplex', '462.libquantum', '459.GemsFDTD'), 
+        ('403.gcc', '459.GemsFDTD', '437.leslie3d', '433.milc', '462.libquantum', '437.leslie3d', '403.gcc', '462.libquantum'), 
+        ('403.gcc', '471.omnetpp', '429.mcf', '403.gcc', '462.libquantum', '471.omnetpp', '470.lbm', '470.lbm'), 
+        ('433.milc', '429.mcf', '437.leslie3d', '403.gcc', '471.omnetpp', '437.leslie3d', '462.libquantum', '471.omnetpp'), 
+        ('403.gcc', '433.milc', '437.leslie3d', '462.libquantum', '429.mcf', '470.lbm', '429.mcf', '459.GemsFDTD'), 
+        ('450.soplex', '471.omnetpp', '437.leslie3d', '403.gcc', '459.GemsFDTD', '450.soplex', '462.libquantum', '429.mcf'), 
+        ('433.milc', '459.GemsFDTD', '470.lbm', '403.gcc', '459.GemsFDTD', '462.libquantum', '462.libquantum', '429.mcf'), 
+        ('450.soplex', '462.libquantum', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf', '403.gcc', '462.libquantum'), 
+        ('429.mcf', '459.GemsFDTD', '471.omnetpp', '429.mcf', '437.leslie3d', '462.libquantum', '459.GemsFDTD', '470.lbm'), 
+        ('462.libquantum', '429.mcf', '403.gcc', '462.libquantum', '459.GemsFDTD', '470.lbm', '437.leslie3d', '433.milc'), 
+        ('462.libquantum', '462.libquantum', '437.leslie3d', '403.gcc', '459.GemsFDTD', '433.milc', '429.mcf', '437.leslie3d'), 
+        ('462.libquantum', '470.lbm', '471.omnetpp', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '437.leslie3d'), 
+        ('462.libquantum', '471.omnetpp', '459.GemsFDTD', '471.omnetpp', '429.mcf', '470.lbm', '437.leslie3d', '471.omnetpp'), 
+        ('433.milc', '437.leslie3d', '470.lbm', '403.gcc', '433.milc', '450.soplex', '462.libquantum', '429.mcf'), 
+        ('459.GemsFDTD', '470.lbm', '433.milc', '462.libquantum', '470.lbm', '450.soplex', '462.libquantum', '462.libquantum'), 
+        ('471.omnetpp', '459.GemsFDTD', '403.gcc', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf', '437.leslie3d'), 
+        ('462.libquantum', '429.mcf', '459.GemsFDTD', '470.lbm', '462.libquantum', '429.mcf', '429.mcf', '437.leslie3d'), 
+        ('433.milc', '429.mcf', '433.milc', '462.libquantum', '429.mcf', '459.GemsFDTD', '437.leslie3d', '470.lbm'), 
+        ('433.milc', '462.libquantum', '459.GemsFDTD', '437.leslie3d', '462.libquantum', '462.libquantum', '462.libquantum', '471.omnetpp'), 
+        ('403.gcc', '450.soplex', '471.omnetpp', '433.milc', '462.libquantum', '471.omnetpp', '450.soplex', '470.lbm'), 
+        ('433.milc', '459.GemsFDTD', '450.soplex', '471.omnetpp', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD'), 
+        ('450.soplex', '429.mcf', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '437.leslie3d', '471.omnetpp', '459.GemsFDTD'), 
+        ('403.gcc', '450.soplex', '462.libquantum', '459.GemsFDTD', '470.lbm', '437.leslie3d', '462.libquantum', '437.leslie3d'), 
+        ('450.soplex', '462.libquantum', '450.soplex', '470.lbm', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD'), 
+        ('450.soplex', '462.libquantum', '429.mcf', '403.gcc', '471.omnetpp', '429.mcf', '450.soplex', '429.mcf'), 
+        ('429.mcf', '437.leslie3d', '433.milc', '450.soplex', '471.omnetpp', '462.libquantum', '459.GemsFDTD', '437.leslie3d'), 
+        ('462.libquantum', '471.omnetpp', '470.lbm', '437.leslie3d', '462.libquantum', '429.mcf', '470.lbm', '433.milc'), 
+        ('450.soplex', '437.leslie3d', '403.gcc', '433.milc', '450.soplex', '459.GemsFDTD', '433.milc', '470.lbm'), 
+        ('462.libquantum', '471.omnetpp', '450.soplex', '462.libquantum', '433.milc', '450.soplex', '462.libquantum', '437.leslie3d'), 
+        ('403.gcc', '433.milc', '450.soplex', '471.omnetpp', '459.GemsFDTD', '403.gcc', '462.libquantum', '462.libquantum'), 
+        ('450.soplex', '429.mcf', '433.milc', '450.soplex', '470.lbm', '471.omnetpp', '459.GemsFDTD', '470.lbm')
+        ]
+
+#'spec-mix' : [('437.leslie3d', '437.leslie3d', '429.mcf', '429.mcf', '429.mcf', '429.mcf', '429.mcf', '459.GemsFDTD'), ('433.milc', '433.milc', '450.soplex', '471.omnetpp', '471.omnetpp', '470.lbm', '470.lbm', '482.sphinx3'), ('433.milc', '433.milc', '450.soplex', '450.soplex', '471.omnetpp', '471.omnetpp', '482.sphinx3', '482.sphinx3'), ('433.milc', '437.leslie3d', '450.soplex', '450.soplex', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar'), ('462.libquantum', '471.omnetpp', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '462.libquantum', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '470.lbm', '482.sphinx3'), ('403.gcc', '450.soplex', '450.soplex', '450.soplex', '450.soplex', '471.omnetpp', '470.lbm', '470.lbm'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '471.omnetpp', '429.mcf', '429.mcf', '482.sphinx3'), ('403.gcc', '403.gcc', '433.milc', '433.milc', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf'), ('433.milc', '450.soplex', '470.lbm', '470.lbm', '470.lbm', '473.astar', '473.astar', '473.astar')]
 }
 
 # Specify only 1 scale
@@ -107,9 +228,10 @@ export NVMAINPATH=$NAS_HOME/zsim/nvmain
 export ZSIMPATH=$NAS_HOME/zsim
 export PGPATH=$NAS_HOME/postgres
 export BOOST=$NAS_HOME/boost
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib:$NAS_HOME/icu/source/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BOOST/stage/lib:$NAS_HOME/icu/source/lib:/usr/lib/x86_64-linux-gnu/
 export PATH=$PGPATH/build/bin:$PATH
 export SPECDIR=$NAS_HOME/SPECCPU2006
+export BIGMEMDIR=$NAS_HOME/bigmem
 
 TESTHOME=$NAS_HOME/%(PREFIX)s
 LOCALHOME=/users/scratch/adria
@@ -141,7 +263,55 @@ elif [ "%(APP)s" == "spec-r" ]; then
     ### Copy spec workload over using symlinks
     ln -s $SPECDIR/build/%(INPUT)s/* .
 
+elif [ "%(APP)s" == "bigmem" ]; then
+    cp $ZSIMPATH/tests/sandy-bigmem-%(SIMTYPE)s.cfg in.cfg
+
+    ### Uncomment command lines
+    sed -i '/%(INPUT)s/s/^\ \ #/\ \ /' in.cfg
+
+    ### Copy spec workload over using symlinks
+    ln -s $BIGMEMDIR/build/%(INPUT)s/* .
+
+elif [ "%(APP)s" == "bigmem-mix" ]; then
+    cp $ZSIMPATH/tests/sandy-bigmem-multi-%(SIMTYPE)s.cfg in.cfg
+
+    i=0
+    for WL in %(INPUT)s; do
+        ### Uncomment command lines
+        sed -i "/$WL$i/s/^\ \ #/\ \ /" in.cfg
+
+        ### Copy spec workload over using symlinks
+        ln -sf $BIGMEMDIR/build/$WL/* .
+
+        i=$((i+1))
+    done
 elif [ "%(APP)s" == "spec-mix" ]; then
+    cp $ZSIMPATH/tests/sandy-spec-multi-%(SIMTYPE)s.cfg in.cfg
+
+    i=0
+    for WL in %(INPUT)s; do
+        ### Uncomment command lines
+        sed -i "/$WL$i/s/^\ \ #/\ \ /" in.cfg
+
+        ### Copy spec workload over using symlinks
+        ln -sf $SPECDIR/build/$WL/* .
+
+        i=$((i+1))
+    done
+elif [ "%(APP)s" == "spec-mix2" ]; then
+    cp $ZSIMPATH/tests/sandy-spec-multi-%(SIMTYPE)s.cfg in.cfg
+
+    i=0
+    for WL in %(INPUT)s; do
+        ### Uncomment command lines
+        sed -i "/$WL$i/s/^\ \ #/\ \ /" in.cfg
+
+        ### Copy spec workload over using symlinks
+        ln -sf $SPECDIR/build/$WL/* .
+
+        i=$((i+1))
+    done
+elif [ "%(APP)s" == "spec-mix3" ]; then
     cp $ZSIMPATH/tests/sandy-spec-multi-%(SIMTYPE)s.cfg in.cfg
 
     i=0
@@ -207,7 +377,7 @@ os.system("ssh adria@arvei.ac.upc.edu \"ls %s | xargs -I\\{} qsub -l huge %s/\\{
 # Wait and re-launch dead simulations
 home = "/homeA/a/adria"
 os.system("ssh adria@arvei.ac.upc.edu 'sleep 60'")
-os.system("ssh adria@arvei.ac.upc.edu 'cd %(dir_prefix)s && while ls *script*; do for f in `ls *script*`; do echo $f && qsub -l huge %(TMPDIR)s/*$f* && rm $f; done; sleep 30; done'" % { "dir_prefix" : root + "/" + dir_prefix, "TMPDIR" : home + "/" + os.path.basename(tmpdir_huge) })
+os.system("ssh adria@arvei.ac.upc.edu 'cd %(dir_prefix)s && while ls *script*; do for f in `ls *script*`; do echo $f && qsub -l huge %(TMPDIR)s/*$f* && rm $f; done; sleep 60; done'" % { "dir_prefix" : root + "/" + dir_prefix, "TMPDIR" : home + "/" + os.path.basename(tmpdir_huge) })
 
 os.system("ssh adria@arvei.ac.upc.edu rm -r %s" % os.path.basename(tmpdir_huge))
 
