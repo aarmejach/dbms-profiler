@@ -39,3 +39,16 @@ cd ../postgres
 ./install.sh
 echo "Postgres compilation done."
 echo "---------------------------------"
+
+#Compile dbt2
+cd ../dbt2
+make clean
+cmake -G "Unix Makefiles" -DDBMS=pgsql
+make
+
+cd storedproc/pgsql/c
+make
+make install #to postgres shared folder
+echo "DBT2 compilation done."
+echo "---------------------------------"
+
