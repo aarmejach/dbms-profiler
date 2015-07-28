@@ -4,7 +4,7 @@ BASEDIR=$(dirname "$0")
 BASEDIR=$(cd "$BASEDIR"; pwd)
 
 USER=adria
-SERVER=arvei.ac.upc.edu
+SERVER=gaudi.ac.upc.edu
 SERVER_HOME=/scratch/nas/1/adria
 SERVER_DIR=$USER@$SERVER:$SERVER_HOME
 
@@ -14,14 +14,20 @@ rsync -aP --delete --exclude 'libs' --exclude 'tools' --exclude 'doc' $BOOST $SE
 #postgres
 rsync -aP --delete --exclude 'build' --exclude '.git' $PGPATH $SERVER_DIR/
 
+#monetdb
+rsync -aP --delete --exclude 'build' --exclude '.git' $HOME/bin/monetdb $SERVER_DIR/
+
 #zsim
 rsync -aP --delete --exclude 'build' --exclude '.git' --exclude 'DRAMSim2/' --exclude 'mcpat*' --exclude 'nvmain/.hg' --exclude 'nvmain/build' --exclude 'results' $ZSIMPATH $SERVER_DIR/
 
 #queries
 rsync -aP --delete $BASEDIR/../../benchmarks/queries $SERVER_DIR/
 
+#dbt2
+rsync -aP --delete $BASEDIR/../../benchmarks/dbt2 $SERVER_DIR/
+
 #datadir
-rsync -aP --delete $BASEDIR/../../data/pgdata1GB-tpch $SERVER_DIR/
+#rsync -aP --delete $BASEDIR/../../data/pgdata1GB-tpch $SERVER_DIR/
 
 #spec
 rsync -aP --delete --exclude 'cpu2006_original'  --exclude 'cpu2006_scripts'  --exclude 'execution_scripts' --exclude 'scripts' $SPECDIR $SERVER_DIR/
