@@ -10,7 +10,13 @@ t=$(timer)
 # Initialize monetdb daemon and create database
 # should I set up locales?
 mkdir -p "$DATADIR" || die "Failed to create directory $DATADIR"
-$MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --daemon=yes &
+$MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --set gdk_nr_threads=4 --daemon=yes &
+#$MDBBINDIR/mserver5 --dbpath=$DATADIR/$DB_NAME --set gdk_nr_threads 8 --daemon=yes &
+#$MDBBINDIR/monetdbd create $DATADIR
+#$MDBBINDIR/monetdbd start $DATADIR
+#$MDBBINDIR/monetdb create $DB_NAME
+#$MDBBINDIR/monetdb release $DB_NAME
+
 MDBPID=$!
 echo "monetdb server runing on pid $MDBPID"
 sleep 10
@@ -69,7 +75,7 @@ for p in $(jobs -p); do
 done
 
 # Create primary and foreign keys
-$MDBBINDIR/mclient -d $DB_NAME < "$BENCHDIR/dss.ri"
+#$MDBBINDIR/mclient -d $DB_NAME < "$BENCHDIR/dss.ri"
 
 # Remove tmp folder
 cd "$BASEDIR"
@@ -79,31 +85,31 @@ rm -rf "$TPCHTMP"
 # WAL logging these create index operations, too.
 echo "Creating 'All' indexes..."
 # Primary key definitions already create indexes ????
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_r_regionkey ON region (r_regionkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_n_nationkey ON nation (n_nationkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_p_partkey ON part (p_partkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_custkey ON customer (c_custkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderkey ON orders (o_orderkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_r_regionkey ON region (r_regionkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_n_nationkey ON nation (n_nationkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_p_partkey ON part (p_partkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_suppkey ON supplier (s_suppkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_custkey ON customer (c_custkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderkey ON orders (o_orderkey);"
 
 # Pg does not create indexed on foreign keys, create them manually
-$MDBBINDIR/mclient -h /tmp -p $PORT -d $DB_NAME -s "CREATE INDEX i_n_regionkey ON nation (n_regionkey);" & # not used
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_nationkey ON supplier (s_nationkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_nationkey ON customer (c_nationkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_suppkey ON partsupp (ps_suppkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_partkey ON partsupp (ps_partkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_custkey ON orders (o_custkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey ON lineitem (l_orderkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey_partkey ON lineitem (l_partkey, l_suppkey);" &
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_n_regionkey ON nation (n_regionkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_s_nationkey ON supplier (s_nationkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_c_nationkey ON customer (c_nationkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_suppkey ON partsupp (ps_suppkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_ps_partkey ON partsupp (ps_partkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_custkey ON orders (o_custkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey ON lineitem (l_orderkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey_partkey ON lineitem (l_partkey, l_suppkey);"
 
 # other indexes
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_shipdate ON lineitem (l_shipdate);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_partkey ON lineitem (l_partkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey ON lineitem (l_suppkey);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_receiptdate ON lineitem (l_receiptdate);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey_quantity ON lineitem (l_orderkey, l_quantity);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderdate ON orders (o_orderdate);" &
-$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);" & # not used
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_shipdate ON lineitem (l_shipdate);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_partkey ON lineitem (l_partkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_suppkey ON lineitem (l_suppkey);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_receiptdate ON lineitem (l_receiptdate);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_orderkey_quantity ON lineitem (l_orderkey, l_quantity);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_o_orderdate ON orders (o_orderdate);"
+$MDBBINDIR/mclient -d $DB_NAME -s "CREATE INDEX i_l_commitdate ON lineitem (l_commitdate);"
 
 for p in $(jobs -p); do
     if [ $p == $MDBPID ]; then continue; fi
@@ -115,7 +121,8 @@ echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
 
 echo "Stop the monetdb server"
 kill $MDBPID
-sleep 5
+#$MDBBINDIR/monetdbd stop $DATADIR
+sleep 10
 
 if [ -d "$QUERIESDIR" ]; then
     echo "Queries folder exists, skip query creation."
