@@ -214,9 +214,9 @@ for p in $(jobs -p); do
 done
 
 # Stop server
-sleep 20
-pg_ctl stop -w -D ${DATADIR}
-sleep 30
+sleep 60
+pg_ctl stop -m immediate -D ${DATADIR}
+sleep 60
 
 if [ "%(APP)s" == "dbt2" ]; then
     kill $DBT2PID

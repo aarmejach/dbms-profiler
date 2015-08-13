@@ -10,7 +10,7 @@ ALL_APPS = "dbt3".split()
 inputs = {
 'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
 #'dbt3' : "1 2 4 8".split(),
-'dbt3' : "1 2 4 6 8".split(),
+'dbt3' : "4".split(),
 'dbt2' : "16 32 64".split()
 }
 
@@ -142,8 +142,9 @@ else
 
     rm -r $LOCALHOME/$DBDIR
     mkdir -p $LOCALHOME/$DBDIR
-    rsync -aP --max-size=25m --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
-    cp -asu $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR 2> /dev/null
+    rsync -aP --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
+    #rsync -aP --max-size=25m --delete $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR
+    #cp -asu $NAS_HOME/$DBDIR/* $LOCALHOME/$DBDIR 2> /dev/null
 
     DATADIR=$LOCALHOME/$DBDIR
     chmod 700 $DATADIR
@@ -184,7 +185,7 @@ elif [ "%(APP)s" == "dbt3" ]; then
         mclient -d mapi:monetdb://127.0.0.1:$VPORT/tpch $QUERIESDIR/throughput_query$i\
 	    2> mdbterm_stream$i.stderr > mdbterm_stream$i.stdout &
         let "i=$i+1"
-        sleep 200
+        sleep 100
     done
 
 else
