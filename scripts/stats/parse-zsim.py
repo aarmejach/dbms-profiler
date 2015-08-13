@@ -25,18 +25,40 @@ def parse_h5file(file):
             statlist = zsimstatsdict[key]
             for stat in statlist:
                 res[key+"_"+stat] = -1
+        for key in percorestatsdict:
+            statlist = zsimstatsdict[key]
+            for stat in statlist:
+                for x in range(0,8):
+                    res[key+str(x)+"_"+stat] = -1
         return res
 
-    for key in zsimstatsdict:
-        statlist = zsimstatsdict[key]
-        for stat in statlist:
-            res[key+"_"+stat] = float(np.sum(dset[-1][key][stat]))
+    if 'zsim-ev.h5' in file:
+        for key in zsimstatsdict:
+            statlist = zsimstatsdict[key]
+            for stat in statlist:
+                res[key+"_"+stat] = float(np.sum(dset[-1][key][stat]))
+        for key in percorestatsdict:
+            statlist = zsimstatsdict[key]
+            for stat in statlist:
+                for x in range(0,dset[-1][key][stat].size):
+                    res[key+str(x)+"_"+stat] = float(dset[-1][key][x][stat])
+    else:
+        # Periodic stats for dbt3
+        for key in zsimstatsdict:
+            statlist = zsimstatsdict[key]
+            for stat in statlist:
+                res[key+"_"+stat] = float(np.sum(dset[90][key][stat] - dset[57][key][stat]))
+        for key in percorestatsdict:
+            statlist = zsimstatsdict[key]
+            for stat in statlist:
+                for x in range(0,dset[-1][key][stat].size):
+                    res[key+str(x)+"_"+stat] = float(dset[90][key][x][stat] - dset[57][key][x][stat])
 
     return res
 
 
 def toFloat(a):
-    for i in "W mA*t".split():
+    for i in "W mA*t MB/s".split():
         if a.endswith(i):
             a=a[:-len(i)]
     return float(a)
@@ -47,11 +69,30 @@ def parse_nvmainFile(file):
     #print "parsing ", file
 
     array = open(file).read().strip().split('\n')
+    idx = -1
+    final_list = []
+    tmp = []
+    for elem in array:
+        if '===' in elem:
+            if idx > -1:
+                final_list.append(tmp)
+            idx = idx + 1
+            tmp = []
+        else:
+            tmp.append(elem)
 
-    for key in nvmainstatsdict:
-        statslist = nvmainstatsdict[key]
-        for stat in statslist:
-            res[key+"_"+stat] = sum(toFloat(i.split()[-1]) for i in array if (key in i) and (stat in i))
+    if idx == 1:
+        print "Parse NVMAIN " + file + " idx: " + str(idx)
+        for key in nvmainstatsdict:
+            statslist = nvmainstatsdict[key]
+            for stat in statslist:
+                res[key+"_"+stat] = sum(toFloat(i.split()[-1]) for i in final_list[0] if (key in i) and (stat in i))
+    elif idx > 1:
+        print "Parse NVMAIN " + file + " idx: " + str(idx)
+        for key in nvmainstatsdict:
+            statslist = nvmainstatsdict[key]
+            for stat in statslist:
+                res[key+"_"+stat] = sum(toFloat(i.split()[-1]) for i in final_list[90] if (key in i) and (stat in i)) - sum(toFloat(i.split()[-1]) for i in final_list[57] if (key in i) and (stat in i))
 
     return res
 
@@ -66,12 +107,21 @@ def get_results(d):
             if 'tpch' in tmp[0]:
                 tmp[1] = "%02d" % int(tmp[1])
 
-            if 'zsim-ev.h5' in f:
-                dict = parse_h5file(os.path.join(root, f))
-                if tuple(tmp[:]) in results:
-                    results[tuple(tmp[:])].update(dict)
-                else:
-                    results[tuple(tmp[:])] = dict
+            if 'dbt3' in f:
+                if 'zsim.h5' in f:
+                    dict = parse_h5file(os.path.join(root, f))
+                    if tuple(tmp[:]) in results:
+                        results[tuple(tmp[:])].update(dict)
+                    else:
+                        results[tuple(tmp[:])] = dict
+            else:
+                if 'zsim-ev.h5' in f:
+                    dict = parse_h5file(os.path.join(root, f))
+                    if tuple(tmp[:]) in results:
+                        results[tuple(tmp[:])].update(dict)
+                    else:
+                        results[tuple(tmp[:])] = dict
+
             if 'nvmain.out' in f:
                 dict = parse_nvmainFile(os.path.join(root, f))
                 if tuple(tmp[:]) in results:
@@ -119,13 +169,17 @@ def data_to_csv(results):
 
     # Add rows one by one, check all possible workloads and add empty lines for the
     # ones that do not have results. Issue a warning if that is the case.
-    for benchtype in benchmarks:
+    for benchtype in reversed(sorted(benchmarks.iterkeys())):
         benchlist = benchmarks[benchtype]
         for bench in benchlist:
             # change query format
             if 'tpch' in benchtype:
                 bench = "%02d" % int(bench)
-            key = (benchtype, bench, '100')
+            if 'dbt3' in benchtype:
+                scale = '10'
+            else:
+                scale = '100'
+            key = (benchtype, bench, scale)
             row = []
             row.append(key[0]) # bench
             row.append(key[1])# query
@@ -169,7 +223,7 @@ def parse_periodic_stats(d):
 
 
 def _main():
-    global zsimstatsdict, nvmainstatsdict, csv_file, folder_results, benchmarks
+    global percorestatsdict, zsimstatsdict, nvmainstatsdict, csv_file, folder_results, benchmarks
 
     # Go to profiler's base dir
     os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
@@ -178,21 +232,35 @@ def _main():
     #file_name = "common/perf-counters-axle-list"
     folder_results = os.getcwd() + '/' + "results-zsim/"
     #directories=[d for d in os.listdir(folder_results) if os.path.isdir(folder_results + d)]
-    directories=['tests_zsim_base', 'tests_zsim_alloy', 'tests_zsim_unison']
+    directories=['tests_zsim_base', 'tests_zsim_footprint', 'tests_zsim_tidy-new']
 
     benchmarks = { # 447.dealII and 481.wrf not working
     #'spec' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
     #'spec-r' : "400.perlbench 403.gcc 416.gamess 433.milc 435.gromacs 437.leslie3d 445.gobmk 450.soplex 454.calculix 458.sjeng 462.libquantum 465.tonto 471.omnetpp 483.xalancbmk 401.bzip2 410.bwaves 429.mcf 434.zeusmp 436.cactusADM 444.namd 453.povray 456.hmmer 459.GemsFDTD 464.h264ref 470.lbm 473.astar 482.sphinx3".split(),
-    'spec' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
-    'spec-r' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+    #'spec' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
+    #'spec-r' : "403.gcc 433.milc 437.leslie3d 450.soplex 462.libquantum 471.omnetpp 410.bwaves 429.mcf 459.GemsFDTD 470.lbm 473.astar 482.sphinx3".split(),
 
-'spec-mix' : [('403.gcc', '403.gcc', '403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '459.GemsFDTD', '459.GemsFDTD'), ('433.milc', '437.leslie3d', '437.leslie3d', '429.mcf', '429.mcf', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD'), ('433.milc', '433.milc', '433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '471.omnetpp', '471.omnetpp'), ('403.gcc', '403.gcc', '403.gcc', '403.gcc', '433.milc', '437.leslie3d', '471.omnetpp', '459.GemsFDTD'), ('433.milc', '450.soplex', '450.soplex', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3'), ('462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD', '470.lbm', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '459.GemsFDTD'), ('433.milc', '429.mcf', '470.lbm', '470.lbm', '482.sphinx3', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '459.GemsFDTD', '473.astar'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '462.libquantum', '462.libquantum', '462.libquantum', '470.lbm', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '450.soplex', '462.libquantum', '462.libquantum', '471.omnetpp', '473.astar'), ('433.milc', '450.soplex', '429.mcf', '429.mcf', '429.mcf', '429.mcf', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '437.leslie3d', '462.libquantum', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '482.sphinx3'), ('403.gcc', '450.soplex', '450.soplex', '471.omnetpp', '470.lbm', '470.lbm', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '470.lbm', '470.lbm', '470.lbm'), ('403.gcc', '433.milc', '450.soplex', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf', '473.astar'), ('433.milc', '433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '459.GemsFDTD', '459.GemsFDTD', '470.lbm'), ('403.gcc', '437.leslie3d', '450.soplex', '429.mcf', '473.astar', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '429.mcf', '473.astar', '482.sphinx3', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '470.lbm'), ('433.milc', '437.leslie3d', '473.astar', '473.astar', '473.astar', '473.astar', '473.astar', '473.astar'), ('403.gcc', '403.gcc', '450.soplex', '462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '470.lbm'), ('403.gcc', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3', '482.sphinx3'), ('450.soplex', '462.libquantum', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '403.gcc', '433.milc', '429.mcf', '470.lbm', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '437.leslie3d', '437.leslie3d', '429.mcf', '429.mcf', '459.GemsFDTD', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '429.mcf', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('403.gcc', '403.gcc', '403.gcc', '403.gcc', '403.gcc', '429.mcf', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '471.omnetpp', '429.mcf', '429.mcf', '429.mcf'), ('450.soplex', '450.soplex', '429.mcf', '470.lbm', '470.lbm', '473.astar', '482.sphinx3', '482.sphinx3'), ('403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm'), ('403.gcc', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp', '459.GemsFDTD', '473.astar', '482.sphinx3'), ('403.gcc', '403.gcc', '437.leslie3d', '450.soplex', '471.omnetpp', '471.omnetpp', '429.mcf', '459.GemsFDTD'), ('403.gcc', '433.milc', '450.soplex', '450.soplex', '459.GemsFDTD', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '433.milc', '433.milc', '437.leslie3d', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf'), ('403.gcc', '437.leslie3d', '450.soplex', '450.soplex', '429.mcf', '429.mcf', '429.mcf', '473.astar'), ('433.milc', '433.milc', '437.leslie3d', '450.soplex', '450.soplex', '471.omnetpp', '429.mcf', '470.lbm'), ('403.gcc', '433.milc', '433.milc', '433.milc', '450.soplex', '450.soplex', '470.lbm', '473.astar'), ('433.milc', '433.milc', '450.soplex', '450.soplex', '450.soplex', '450.soplex', '471.omnetpp', '482.sphinx3'), ('403.gcc', '403.gcc', '471.omnetpp', '429.mcf', '429.mcf', '470.lbm', '473.astar', '482.sphinx3'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '462.libquantum', '471.omnetpp', '470.lbm'), ('437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '429.mcf', '473.astar'), ('403.gcc', '433.milc', '471.omnetpp', '429.mcf', '470.lbm', '473.astar', '473.astar', '482.sphinx3'), ('403.gcc', '433.milc', '433.milc', '433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '470.lbm'), ('403.gcc', '403.gcc', '437.leslie3d', '437.leslie3d', '450.soplex', '459.GemsFDTD', '459.GemsFDTD', '473.astar'), ('403.gcc', '433.milc', '471.omnetpp', '429.mcf', '429.mcf', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3'), ('433.milc', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '459.GemsFDTD', '482.sphinx3', '482.sphinx3', '482.sphinx3'), ('450.soplex', '450.soplex', '471.omnetpp', '429.mcf', '473.astar', '473.astar', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '462.libquantum', '462.libquantum', '471.omnetpp', '429.mcf', '470.lbm', '470.lbm'), ('403.gcc', '437.leslie3d', '437.leslie3d', '462.libquantum', '462.libquantum', '459.GemsFDTD', '459.GemsFDTD', '470.lbm'), ('403.gcc', '403.gcc', '450.soplex', '429.mcf', '429.mcf', '459.GemsFDTD', '470.lbm', '482.sphinx3'), ('403.gcc', '462.libquantum', '471.omnetpp', '471.omnetpp', '429.mcf', '429.mcf', '473.astar', '482.sphinx3'), ('437.leslie3d', '437.leslie3d', '450.soplex', '450.soplex', '450.soplex', '459.GemsFDTD', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '437.leslie3d', '437.leslie3d', '470.lbm', '473.astar', '473.astar'), ('433.milc', '437.leslie3d', '437.leslie3d', '450.soplex', '470.lbm', '470.lbm', '470.lbm', '482.sphinx3'), ('462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf', '429.mcf', '473.astar', '482.sphinx3'), ('433.milc', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '459.GemsFDTD', '470.lbm', '473.astar'), ('433.milc', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp', '429.mcf', '470.lbm', '473.astar'), ('433.milc', '433.milc', '450.soplex', '450.soplex', '471.omnetpp', '471.omnetpp', '471.omnetpp', '471.omnetpp'), ('433.milc', '433.milc', '433.milc', '462.libquantum', '462.libquantum', '462.libquantum', '429.mcf', '470.lbm'), ('403.gcc', '403.gcc', '450.soplex', '450.soplex', '462.libquantum', '462.libquantum', '429.mcf', '429.mcf'), ('433.milc', '433.milc', '437.leslie3d', '437.leslie3d', '429.mcf', '470.lbm', '470.lbm', '473.astar'), ('403.gcc', '437.leslie3d', '450.soplex', '462.libquantum', '471.omnetpp', '429.mcf', '429.mcf', '470.lbm')]
+'spec-mix3' : [
+        ('450.soplex', '459.GemsFDTD', '403.gcc', '433.milc', '471.omnetpp', '437.leslie3d', '470.lbm', '437.leslie3d'), ('433.milc', '450.soplex', '462.libquantum', '470.lbm', '433.milc', '450.soplex', '462.libquantum', '459.GemsFDTD'), ('403.gcc', '459.GemsFDTD', '437.leslie3d', '433.milc', '462.libquantum', '437.leslie3d', '403.gcc', '462.libquantum'), ('403.gcc', '471.omnetpp', '429.mcf', '403.gcc', '462.libquantum', '471.omnetpp', '470.lbm', '470.lbm'), ('433.milc', '429.mcf', '437.leslie3d', '403.gcc', '471.omnetpp', '437.leslie3d', '462.libquantum', '471.omnetpp'), ('403.gcc', '433.milc', '437.leslie3d', '462.libquantum', '429.mcf', '470.lbm', '429.mcf', '459.GemsFDTD'), ('450.soplex', '471.omnetpp', '437.leslie3d', '403.gcc', '459.GemsFDTD', '450.soplex', '462.libquantum', '429.mcf'), ('433.milc', '459.GemsFDTD', '470.lbm', '403.gcc', '459.GemsFDTD', '462.libquantum', '462.libquantum', '429.mcf'), ('450.soplex', '462.libquantum', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf', '403.gcc', '462.libquantum'), ('429.mcf', '459.GemsFDTD', '471.omnetpp', '429.mcf', '437.leslie3d', '462.libquantum', '459.GemsFDTD', '470.lbm'), ('462.libquantum', '429.mcf', '403.gcc', '462.libquantum', '459.GemsFDTD', '470.lbm', '437.leslie3d', '433.milc'), ('462.libquantum', '462.libquantum', '437.leslie3d', '403.gcc', '459.GemsFDTD', '433.milc', '429.mcf', '437.leslie3d'), ('462.libquantum', '470.lbm', '471.omnetpp', '459.GemsFDTD', '433.milc', '462.libquantum', '471.omnetpp', '437.leslie3d'), ('462.libquantum', '471.omnetpp', '459.GemsFDTD', '471.omnetpp', '429.mcf', '470.lbm', '437.leslie3d', '471.omnetpp'), ('433.milc', '437.leslie3d', '470.lbm', '403.gcc', '433.milc', '450.soplex', '462.libquantum', '429.mcf'), ('459.GemsFDTD', '470.lbm', '433.milc', '462.libquantum', '470.lbm', '450.soplex', '462.libquantum', '462.libquantum'), ('471.omnetpp', '459.GemsFDTD', '403.gcc', '437.leslie3d', '462.libquantum', '471.omnetpp', '429.mcf', '437.leslie3d'), ('462.libquantum', '429.mcf', '459.GemsFDTD', '470.lbm', '462.libquantum', '429.mcf', '429.mcf', '437.leslie3d'), ('433.milc', '429.mcf', '433.milc', '462.libquantum', '429.mcf', '459.GemsFDTD', '437.leslie3d', '470.lbm'), ('433.milc', '462.libquantum', '459.GemsFDTD', '437.leslie3d', '462.libquantum', '462.libquantum', '462.libquantum', '471.omnetpp'), ('403.gcc', '450.soplex', '471.omnetpp', '433.milc', '462.libquantum', '471.omnetpp', '450.soplex', '470.lbm'), ('433.milc', '459.GemsFDTD', '450.soplex', '471.omnetpp', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD'), ('450.soplex', '429.mcf', '462.libquantum', '471.omnetpp', '459.GemsFDTD', '437.leslie3d', '471.omnetpp', '459.GemsFDTD'), ('403.gcc', '450.soplex', '462.libquantum', '459.GemsFDTD', '470.lbm', '437.leslie3d', '462.libquantum', '437.leslie3d'), ('450.soplex', '462.libquantum', '450.soplex', '470.lbm', '462.libquantum', '462.libquantum', '429.mcf', '459.GemsFDTD'), ('450.soplex', '462.libquantum', '429.mcf', '403.gcc', '471.omnetpp', '429.mcf', '450.soplex', '429.mcf'), ('429.mcf', '437.leslie3d', '433.milc', '450.soplex', '471.omnetpp', '462.libquantum', '459.GemsFDTD', '437.leslie3d'), ('462.libquantum', '471.omnetpp', '470.lbm', '437.leslie3d', '462.libquantum', '429.mcf', '470.lbm', '433.milc'), ('450.soplex', '437.leslie3d', '403.gcc', '433.milc', '450.soplex', '459.GemsFDTD', '433.milc', '470.lbm'), ('462.libquantum', '471.omnetpp', '450.soplex', '462.libquantum', '433.milc', '450.soplex', '462.libquantum', '437.leslie3d'), ('403.gcc', '433.milc', '450.soplex', '471.omnetpp', '459.GemsFDTD', '403.gcc', '462.libquantum', '462.libquantum'), ('450.soplex', '429.mcf', '433.milc', '450.soplex', '470.lbm', '471.omnetpp', '459.GemsFDTD', '470.lbm')],
+
     #'tpch' : "2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22".split(),
-    #'dbt3' : "1 2 4 8".split(),
+    #'dbt3' : "1 2 4 6 8".split()
+    'dbt3' : "4".split()
     #'dbt2' : "16 32 64".split()
+    #'bigmem' : "stream graph500 nascg nasmg".split(),
+
+    #'bigmem-mix' : [
+            #('stream', 'graph500'),
+            #('stream', 'nasmg'),
+            #('stream', 'nascg'),
+            #('graph500', 'nascg'),
+            #('graph500', 'nasmg'),
+            #('nascg', 'nasmg')
+            #]
     }
 
-    benchmarks['spec-mix'] = ["-".join(elem) for elem in benchmarks['spec-mix']]
+    benchmarks['spec-mix3'] = ["-".join(elem) for elem in benchmarks['spec-mix3']]
+    #benchmarks['bigmem-mix'] = ["-".join(elem) for elem in benchmarks['bigmem-mix']]
 
     for d in directories:
 
@@ -210,10 +278,16 @@ def _main():
               'l3'    : ['mGETS', 'mGETXIM', 'hGETS', 'hGETX'],
               'mem'   : ['rd', 'wr', 'PUTS', 'PUTX', 'rdlat', 'wrlat', 'footprint', 'addresses']
               }
+        percorestatsdict = {
+              'sandy' : ['instrs', 'cycles', 'mispredBranches']
+              }
         nvmainstatsdict = {
               'DRC'    : ['totalPower', 'rb_hits', 'rb_miss', 'drc_hits', 'drc_miss'],
               'PredictorDRC' : ['truePredictions', 'falsePredictions'],
-              'FRFCFS' : ['totalPower', 'rb_hits', 'rb_miss']
+              'FRFCFS' : ['totalPower', 'rb_hits', 'rb_miss'],
+              'ootprintCache' : ['subarray0.activeEnergy', 'subarray0.burstEnergy'],
+              'y.channel0.FRFCFS' : ['bandwidth', 'mem_reads'],
+              'y.channel1.FRFCFS' : ['bandwidth', 'mem_reads']
               }
         results = get_results(d)
         #pprint(results)
@@ -249,6 +323,14 @@ def _main():
         #FRFCFS
         add_counter(results, 'frfcfs_rbhitrate', '$FRFCFS_rb_hits / ( $FRFCFS_rb_hits + $FRFCFS_rb_miss )')
 
+        add_counter(results, 'ipc0', '$sandy0_instrs / $sandy0_cycles')
+        add_counter(results, 'ipc1', '$sandy1_instrs / $sandy1_cycles')
+        add_counter(results, 'ipc2', '$sandy2_instrs / $sandy2_cycles')
+        add_counter(results, 'ipc3', '$sandy3_instrs / $sandy3_cycles')
+        add_counter(results, 'ipc4', '$sandy4_instrs / $sandy4_cycles')
+        add_counter(results, 'ipc5', '$sandy5_instrs / $sandy5_cycles')
+        add_counter(results, 'ipc6', '$sandy6_instrs / $sandy6_cycles')
+        add_counter(results, 'ipc7', '$sandy7_instrs / $sandy7_cycles')
         #pprint(results)
 
         # Write CSV file with all the data
