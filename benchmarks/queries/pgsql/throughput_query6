@@ -1,153 +1,216 @@
--- using 809003323 as a seed to the RNG
--- $ID$
--- TPC-H/TPC-R National Market Share Query (Q8)
--- Functional Query Definition
--- Approved February 1998
+-- using default substitutions
 
 
 select
-	o_year,
-	sum(case
-		when nation = 'MOROCCO' then volume
-		else 0
-	end) / sum(volume) as mkt_share
+	c_count,
+	count(*) as custdist
 from
 	(
 		select
-			extract(year from o_orderdate) as o_year,
-			l_extendedprice * (1 - l_discount) as volume,
-			n2.n_name as nation
+			c_custkey,
+			count(o_orderkey)
 		from
-			part,
-			supplier,
-			lineitem,
-			orders,
-			customer,
-			nation n1,
-			nation n2,
-			region
-		where
-			p_partkey = l_partkey
-			and s_suppkey = l_suppkey
-			and l_orderkey = o_orderkey
-			and o_custkey = c_custkey
-			and c_nationkey = n1.n_nationkey
-			and n1.n_regionkey = r_regionkey
-			and r_name = 'AFRICA'
-			and s_nationkey = n2.n_nationkey
-			and o_orderdate between date '1995-01-01' and date '1996-12-31'
-			and p_type = 'ECONOMY BRUSHED TIN'
-	) as all_nations
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
 group by
-	o_year
+	c_count
 order by
-	o_year;
+	custdist desc,
+	c_count desc;
 
--- $ID$
--- TPC-H/TPC-R Important Stock Identification Query (Q11)
--- Functional Query Definition
--- Approved February 1998
+-- using default substitutions
 
 
 select
-	ps_partkey,
-	sum(ps_supplycost * ps_availqty) as value
+	c_count,
+	count(*) as custdist
 from
-	partsupp,
-	supplier,
-	nation
-where
-	ps_suppkey = s_suppkey
-	and s_nationkey = n_nationkey
-	and n_name = 'ALGERIA'
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
 group by
-	ps_partkey having
-		sum(ps_supplycost * ps_availqty) > (
-			select
-				sum(ps_supplycost * ps_availqty) * 0.0000010000
-			from
-				partsupp,
-				supplier,
-				nation
-			where
-				ps_suppkey = s_suppkey
-				and s_nationkey = n_nationkey
-				and n_name = 'ALGERIA'
-		)
+	c_count
 order by
-	value desc;
+	custdist desc,
+	c_count desc;
 
--- $ID$
--- TPC-H/TPC-R Minimum Cost Supplier Query (Q2)
--- Functional Query Definition
--- Approved February 1998
+-- using default substitutions
 
 
 select
-	s_acctbal,
-	s_name,
-	n_name,
-	p_partkey,
-	p_mfgr,
-	s_address,
-	s_phone,
-	s_comment
+	c_count,
+	count(*) as custdist
 from
-	part,
-	supplier,
-	partsupp,
-	nation,
-	region
-where
-	p_partkey = ps_partkey
-	and s_suppkey = ps_suppkey
-	and p_size = 27
-	and p_type like '%STEEL'
-	and s_nationkey = n_nationkey
-	and n_regionkey = r_regionkey
-	and r_name = 'ASIA'
-	and ps_supplycost = (
+	(
 		select
-			min(ps_supplycost)
+			c_custkey,
+			count(o_orderkey)
 		from
-			partsupp,
-			supplier,
-			nation,
-			region
-		where
-			p_partkey = ps_partkey
-			and s_suppkey = ps_suppkey
-			and s_nationkey = n_nationkey
-			and n_regionkey = r_regionkey
-			and r_name = 'ASIA'
-	)
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
 order by
-	s_acctbal desc,
-	n_name,
-	s_name,
-	p_partkey
-LIMIT 100;
--- $ID$
--- TPC-H/TPC-R Small-Quantity-Order Revenue Query (Q17)
--- Functional Query Definition
--- Approved February 1998
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
 
 
 select
-	sum(l_extendedprice) / 7.0 as avg_yearly
+	c_count,
+	count(*) as custdist
 from
-	lineitem,
-	part
-where
-	p_partkey = l_partkey
-	and p_brand = 'Brand#23'
-	and p_container = 'LG BAG'
-	and l_quantity < (
+	(
 		select
-			0.2 * avg(l_quantity)
+			c_custkey,
+			count(o_orderkey)
 		from
-			lineitem
-		where
-			l_partkey = p_partkey
-	);
--- $ID$
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
+
+
+select
+	c_count,
+	count(*) as custdist
+from
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
+
+
+select
+	c_count,
+	count(*) as custdist
+from
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
+
+
+select
+	c_count,
+	count(*) as custdist
+from
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
+
+
+select
+	c_count,
+	count(*) as custdist
+from
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
+-- using default substitutions
+
+
+select
+	c_count,
+	count(*) as custdist
+from
+	(
+		select
+			c_custkey,
+			count(o_orderkey)
+		from
+			customer left outer join orders on
+				c_custkey = o_custkey
+				and o_comment not like '%special%requests%'
+		group by
+			c_custkey
+	) as c_orders (c_custkey, c_count)
+group by
+	c_count
+order by
+	custdist desc,
+	c_count desc;
+
