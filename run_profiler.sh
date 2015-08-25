@@ -101,15 +101,15 @@ for DATABASE in $DATABASES; do
         # Will run the benchmark
         echo "Get ready to run benchmark $BENCHMARK: drop caches."
         sudo dropcaches.sh
-        sudo /usr/bin/cpupower frequency-set -g performance
-        sudo /usr/bin/cpupower frequency-set -u 2600000
+        #sudo /usr/bin/cpupower frequency-set -g performance
+        #sudo /usr/bin/cpupower frequency-set -u 2600000
         sleep 5
 
         echo "Running benchmark $BENCHMARK for $DATABASE"
         source "$BASEDIR/$DATABASE/run_$BENCHMARK.sh"
 
         # Change governor back to ondemand
-        sudo /usr/bin/cpupower frequency-set -g ondemand
+        #sudo /usr/bin/cpupower frequency-set -g ondemand
     done
 
 done
