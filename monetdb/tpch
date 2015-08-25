@@ -1,7 +1,9 @@
 # Configuration file for the TPC-H benchmark on monetdb
-SCALE=1
-TPCHTMP=/AXLE/$USER/tpch_tmp
-DATADIR=/AXLE/$USER/mdbdata${SCALE}GB-tpch
+SCALE=10
+#TPCHTMP=/AXLE/$USER/tpch_tmp
+#DATADIR=/AXLE/$USER/mdbdata${SCALE}GB-tpch
+TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
+DATADIR=$BASEDIR/data/mdbdata${SCALE}GB-tpch
 PORT=50000
 DB_NAME="tpch"
 CORES=`grep -c ^processor /proc/cpuinfo`
