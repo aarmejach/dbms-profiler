@@ -36,7 +36,6 @@ ${PGBINDIR}/createdb -h /tmp -p ${PORT} $DB_NAME --locale=C
 
 # Change postgres configuration for data loading
 loading_configuration="
-checkpoint_segments = 300
 checkpoint_timeout = 3600s
 checkpoint_completion_target = 0.9
 checkpoint_timeout = $CHECKPOINT_TIMEOUT
