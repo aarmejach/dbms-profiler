@@ -3,7 +3,7 @@
 # Install teardown() function to kill any lingering jobs
 teardown() {
   echo "Teardown: Cleaning up before exiting"
-  sudo /usr/bin/cpupower frequency-set -g ondemand
+  #sudo /usr/bin/cpupower frequency-set -g ondemand
   $PGBINDIR/pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 1
   JOBS=$(jobs -p)
   test -z "$JOBS" || { kill $JOBS && sleep 2; }

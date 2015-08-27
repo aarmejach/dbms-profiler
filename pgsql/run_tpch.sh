@@ -26,13 +26,13 @@ mkdir -p $RESULTS
 cd $RESULTS
 
 # Start Postgres server
-do_start_postgres
+#do_start_postgres
 
 # Additional sleep time seems necessary
 sleep 3
 
 # Warmup: run all queries in succession, always do this, even with zsim
-do_warmup_tpch
+#do_warmup_tpch
 
 if [ "$SIMULATOR" = true ]; then
     echo "Execute in Zsim: stop postgres server"
@@ -48,46 +48,68 @@ do
     mkdir -p $dir
     cd "$dir"
 
+    do_start_postgres
+
     if [ "$SIMULATOR" = true ]; then
         do_launch_simulation $ii
     else
-        # Warm up run
+        # Callgraph run
         /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-            --output=warmup_q$ii.exectime $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME\
-            < $QUERIESDIR/q$ii.analyze.sql 2> warmup_q$ii.stderr > warmup_q$ii.stdout
+            --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
+            -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
 
-        if [ "$STAT" = false ]; then
-            # Execute each query once for callgraph
-            perf record -a -g -m 512 --\
+        do_stop_postgres
+        sudo dropcaches.sh
+        do_start_postgres
+
+        source "$BASEDIR/common/perf-counters-pmfs.sh"
+        for counter in "${array[@]}"; do
+            do_stop_postgres
+            sudo dropcaches.sh
+            do_start_postgres
+
+            echo "Running query $i for counters $counter."
+            # Execute queries using perf stat, repeat 3
+            LC_NUMERIC=C perf stat -r 1 -e $counter -p $PGPID -x "," --\
                 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
-                2> stderr_callgraph.txt > stdout_callgraph.txt
+                2>> perf-stats.csv > stdout_$counter.txt
+        done
+
+        #if [ "$STAT" = false ]; then
+            # Execute each query once for callgraph
+            #perf record -a -g -m 512 --\
+                #$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
+                #2> stderr_callgraph.txt > stdout_callgraph.txt
 
             # Collect samples for ipc
-            perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
-                $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
-                2> stderr_samples.txt > stdout_samples.txt
+            #perf record -a -m 512 -e "r00C0" -s -F 1000 -o ipc-samples.data --\
+                #$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
+                #2> stderr_samples.txt > stdout_samples.txt
 
             # Parse samples
-            perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples-perf.py\
-                > ipc-samples-perf.csv
-        else
-            source "$BASEDIR/common/perf-counters-axle.sh"
-            for counter in "${array[@]}"; do
-                echo "Running query $i for counters $counter."
+            #perf script -D -i ipc-samples.data | python $BASEDIR/common/parse-ipc-samples-perf.py\
+                #> ipc-samples-perf.csv
+        #else
+            #source "$BASEDIR/common/perf-counters-axle.sh"
+            #for counter in "${array[@]}"; do
+                #echo "Running query $i for counters $counter."
                 # Execute queries using perf stat, repeat 3
-                LC_NUMERIC=C perf stat -r 1 -e $counter -p $PGPID -x "," --\
-                    $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
-                    2>> perf-stats.csv > stdout_$counter.txt
-            done
-        fi
+                #LC_NUMERIC=C perf stat -r 1 -e $counter -p $PGPID -x "," --\
+                    #$PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
+                    #2>> perf-stats.csv > stdout_$counter.txt
+            #done
+        #fi
     fi
+
+    do_stop_postgres
+    sudo dropcaches.sh
 
     cd ..
 done
 
 # Generate callgraphs
 if [ "$SIMULATOR" = false ]; then
-    do_stop_postgres
+    #do_stop_postgres
     if [ "$STAT" = false ]; then
         source "$BASEDIR/common/callgraph.sh"
     fi
