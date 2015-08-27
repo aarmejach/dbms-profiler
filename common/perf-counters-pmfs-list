@@ -1,0 +1,8 @@
+### General
+#r00C0:u C0H 00H Number of instructions at retirement. user-level
+#r00C0:k C0H 00H Number of instructions at retirement. kernel-level
+#r0076:u 3CH 00H Number of thread cycles while the thread is not in a halt state. user-level
+#r0076:k 3CH 00H Number of thread cycles while the thread is not in a halt state. kernel-level
+#r00D1:u D1H 00H The number of processor cycles where the decoder is stalled. user-level
+#r00D1:k D1H 00H The number of processor cycles where the decoder is stalled. kernel-level
+
