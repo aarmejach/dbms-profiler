@@ -58,10 +58,6 @@ do
             --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
             -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
 
-        do_stop_postgres
-        sudo dropcaches.sh
-        do_start_postgres
-
         source "$BASEDIR/common/perf-counters-pmfs.sh"
         for counter in "${array[@]}"; do
             do_stop_postgres
