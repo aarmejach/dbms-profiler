@@ -134,7 +134,7 @@ def _main():
 
   for d in directories:
     folder_results = "results-pmfs/" + d
-    csv_file = "results/perf-data-" + d + ".csv"
+    csv_file = "results/perf-data-pmfs-" + d + ".csv"
 
     # Get counters of interest and read results
     results = get_results()
