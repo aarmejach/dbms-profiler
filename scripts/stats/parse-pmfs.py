@@ -62,7 +62,7 @@ def get_results():
         tmp = root.split('/')
         dict,error = _parse_csv_file(os.path.join(root, f))
         if not error:
-            results[tuple(tmp[1:])] = dict
+            results[tuple(tmp[2:])] = dict
         else:
             print "SKIPPING configuration " + " ".join(tmp)
   return results
