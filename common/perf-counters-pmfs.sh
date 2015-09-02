@@ -5,7 +5,7 @@ file=$BASEDIR/common/perf-counters-pmfs-list
 #file=perf-counters-axle-list
 list=`cat $file | grep -o 'r[0-9]\+[0-9A-F]*:[uk]\|r[0-9]\+[0-9A-F]*'`
 
-merge_level=3
+merge_level=4
 it=1
 array_item=
 array_index=0
