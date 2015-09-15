@@ -4,6 +4,7 @@
 teardown() {
   echo "Teardown: Cleaning up before exiting"
   #sudo /usr/bin/cpupower frequency-set -g ondemand
+  for i in {0..11}; do sudo /usr/bin/cpufreq-set -c $i -g ondemand; done
   $PGBINDIR/pg_ctl stop -m fast -D "$DATADIR" 2>/dev/null && sleep 1
   JOBS=$(jobs -p)
   test -z "$JOBS" || { kill $JOBS && sleep 2; }
@@ -92,7 +93,7 @@ do_check_datadir() {
 
 do_start_postgres(){
     echo "Starting Postgres server"
-    $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
+    taskset -c 0-5 $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
     PGPID=$!
     while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
         echo "Waiting for the Postgres server to start"
