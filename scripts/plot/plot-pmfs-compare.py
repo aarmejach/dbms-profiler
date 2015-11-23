@@ -11,7 +11,7 @@ from plotlib import *
 def plot_bar(name, liststats, results_all):
 
     # reset the configuration to the default
-    config='scripts/gen_results_default_config.py'
+    config="scripts/gen_results_config_%s.py" % name
     # TODO For each directory set the local configuration
 
     # Ensure that results arrays have the same number of entries
@@ -26,7 +26,7 @@ def plot_bar(name, liststats, results_all):
         for k,v in results_all.iteritems():
             d = os.path.splitext(os.path.basename(k))[0]
             d = d.split("-")[-1]
-            column_names.append(stat+' '+d)
+            column_names.append(d)
             columns.append(v[stat])
 
     # TODO ylim logic
@@ -56,6 +56,7 @@ def _main():
 
     # Load CSV into a list of numpy recarray
     all_data = {}
+    datafiles.sort()
     for f in datafiles:
         all_data[f] = mp.mlab.csv2rec(folder_results + f, delimiter=',')
 

@@ -3,7 +3,7 @@
 import sys, os, getopt
 from subprocess import Popen, PIPE
 
-SIMTYPES="base alloy unison tpc footprint tidy".split()
+SIMTYPES="base footprint tidy".split()
 
 #ALL_APPS = "tpch dbt2 dbt3".split()
 ALL_APPS = "dbt3".split()
