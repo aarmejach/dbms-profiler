@@ -93,7 +93,7 @@ for f in *.tbl; do
   # We truncate the empty table in the sames transaction to enable Postgres to
   # safely skip WAL-logging. See
   # http://www.postgresql.org/docs/current/static/populate.html#POPULATE-PITR
-  echo "truncate $bf; COPY $bf FROM '$(pwd)/$f' WITH DELIMITER AS '|'" | $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME &
+  echo "truncate $bf; COPY $bf FROM '$(pwd)/$f' WITH DELIMITER '|'" | $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME &
 done
 
 # TODO: It would be nice if there was a way to limit the number of
