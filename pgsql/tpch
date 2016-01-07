@@ -11,12 +11,13 @@ MEMORY_25PRCT=$(( $MEMORY_MB / 4 ))
 #DATADIR=/AXLE/$USER/pgdata${SCALE}GB-tpch
 ### PMFS machine
 TPCHTMP=$BASEDIR/data/tmp_$BENCHMARK
+
 ## normal disk
-DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
-## fast disk (RAID 1)
-#DATADIR=/bench/data/pgdata${SCALE}GB-tpch
+#DATADIR=$BASEDIR/data/pgdata${SCALE}GB-tpch
+
 ## pmfs partition
-#DATADIR=/mnt/pmfs/data/pgdata${SCALE}GB-tpch
+DATADIR=/mnt/pmfs/data/pgdata${SCALE}GB-tpch
+
 ## /dev/shm partition - tmpfs
 #DATADIR=/dev/shm/data/pgdata${SCALE}GB-tpch
 
