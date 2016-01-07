@@ -51,8 +51,8 @@ def _main():
 
     # Data folters
     folder_results = "results/"
-    datafiles=[f for f in os.listdir(folder_results) if f.startswith("perf-data-pmfs-")]
-    fig_dir = "figures/pmfs/comparison/"
+    datafiles=[f for f in os.listdir(folder_results) if f.startswith("perf-data-axle-pmfs-")]
+    fig_dir = "figures/axle-pmfs/comparison/"
 
     # Load CSV into a list of numpy recarray
     all_data = {}
@@ -64,8 +64,8 @@ def _main():
     charts = {
         'exectime'  : ['total_cycles'],
         'instructions' : ['total_insts'],
-        'prcnt_kernel_time' : ['prcnt_kernel_cycles']
-        #'ipc'       : ['ipc'],
+        'prcnt_kernel_time' : ['prcnt_kernel_cycles'],
+        'ipc'       : ['ipc']
         #'l1d_mpki'  : ['l1d_mpki'],
         #'l1i_mpki'  : ['l1i_mpki'],
         #'l2_mpki'   : ['l2_mpki'],

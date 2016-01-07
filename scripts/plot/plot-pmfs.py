@@ -109,13 +109,13 @@ def _main():
 
     # Configuration parameters
     folder_results = "results/"
-    datafiles=[f for f in os.listdir(folder_results) if f.startswith("perf-data-pmfs-")]
+    datafiles=[f for f in os.listdir(folder_results) if f.startswith("perf-data-axle-pmfs-")]
     #data_file = "results/perf-data.csv"
     for f in datafiles:
         d = os.path.splitext(os.path.basename(f))[0]
         d = d.split("-")[-1]
 
-        folder_figures = "figures/pmfs/" + d
+        folder_figures = "figures/axle-pmfs/" + d
         results_file = "results/" + f
 
         # Load CSV into a numpy recarray

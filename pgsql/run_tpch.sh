@@ -58,14 +58,14 @@ do
             --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
             -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
 
-        source "$BASEDIR/common/perf-counters-pmfs.sh"
+        source "$BASEDIR/common/perf-counters-axle.sh"
         for counter in "${array[@]}"; do
             do_stop_postgres
             sudo dropcaches.sh
             do_start_postgres
 
             echo "Running query $i for counters $counter."
-            # Execute queries using perf stat, repeat 3
+            # Execute queries using perf stat
             LC_NUMERIC=C perf stat -r 1 -e $counter -p $PGPID -x "," --\
                 $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME -f $QUERIESDIR/q$ii.sql\
                 2>> perf-stats.csv > stdout_$counter.txt

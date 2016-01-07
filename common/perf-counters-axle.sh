@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # read file with perf counters list
-file=$BASEDIR/common/perf-counters-axle-list
+file=$BASEDIR/common/perf-counters-axle-list-pmfs
 #file=perf-counters-axle-list
 list=`cat $file | grep -o 'r[0-9]\+[0-9A-F]*:[uk]\|r[0-9]\+[0-9A-F]*'`
 

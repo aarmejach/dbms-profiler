@@ -126,53 +126,64 @@ def _main():
   os.chdir(os.path.dirname(os.path.realpath(__file__))+ '/../..')
 
   # Configuration parameters
-  file_name = "common/perf-counters-pmfs-list"
+  file_name = "common/perf-counters-axle-list-pmfs"
   counters = get_counters()
 
-  folder_results = "results-pmfs/"
+  folder_results = "results-axle-pmfs/"
   directories=[d for d in os.listdir(folder_results) if os.path.isdir(folder_results + d)]
 
   for d in directories:
-    folder_results = "results-pmfs/" + d
-    csv_file = "results/perf-data-pmfs-" + d + ".csv"
+    folder_results = "results-axle-pmfs/" + d
+    csv_file = "results/perf-data-axle-pmfs-" + d + ".csv"
 
     # Get counters of interest and read results
     results = get_results()
 
     # General metrics of interest
-    add_counter(counters, results, 'total_cycles', 'Total cycles', '$0076:k + $0076:u')
+    add_counter(counters, results, 'total_cycles', 'Total cycles', '$003c:k + $003c:u')
     add_counter(counters, results, 'total_insts', 'Total insts', '$00c0:k + $00c0:u')
     add_counter(counters, results, 'prcnt_kernel_cycles',
-                '% Kernel cycles', '( $0076:k / $total_cycles ) * 100')
+                '% Kernel cycles', '( $003c:k / $total_cycles ) * 100')
     add_counter(counters, results, 'ipc', 'IPC', '$total_insts / $total_cycles')
     #add_counter(counters, results, 'cpi', 'CPI', '1 / $ipc')
 
     # Stalls General
-    add_counter(counters, results, 'total_stall_compute',
-                'Total cycles calculated by stall compute counters',
-                '$total_cycles')
-    add_counter(counters, results, 'prcnt_cycles_compute_user',
-            '% Computational cycles user-level', '( ( $0076:u - $00d1:u ) / $total_stall_compute ) * 100')
-    add_counter(counters, results, 'prcnt_cycles_compute_kernel',
-            '% Computational cycles kernel-level', '( ( $0076:k - $00d1:k ) / $total_stall_compute ) * 100')
-    add_counter(counters, results, 'prcnt_cycles_stalled_user',
-                '% Stalled cycles user-level', '( $00d1:u / $total_stall_compute ) * 100')
-    add_counter(counters, results, 'prcnt_cycles_stalled_kernel',
-      '% Stalled cycles kernel-level', '( $00d1:k / $total_stall_compute ) * 100')
+    # add_counter(counters, results, 'total_stall_compute',
+                # 'Total cycles calculated by stall compute counters',
+                # '$total_cycles')
+    # add_counter(counters, results, 'prcnt_cycles_compute_user',
+            # '% Computational cycles user-level', '( ( $0076:u - $00d1:u ) / $total_stall_compute ) * 100')
+    # add_counter(counters, results, 'prcnt_cycles_compute_kernel',
+            # '% Computational cycles kernel-level', '( ( $0076:k - $00d1:k ) / $total_stall_compute ) * 100')
+    # add_counter(counters, results, 'prcnt_cycles_stalled_user',
+                # '% Stalled cycles user-level', '( $00d1:u / $total_stall_compute ) * 100')
+    # add_counter(counters, results, 'prcnt_cycles_stalled_kernel',
+      # '% Stalled cycles kernel-level', '( $00d1:k / $total_stall_compute ) * 100')
 
     # Stalls General
-    #add_counter(counters, results, 'total_stall_compute',
-                #'Total cycles calculated by stall compute counters',
-                #'$15301c2:u + $15301c2:k + $1d301c2:u + ( $3c:k - $15301c2:k )')
-    #add_counter(counters, results, 'prcnt_cycles_compute_user',
-            #'% Computational cycles user-level', '( ( $0076:u - $00d1:u ) / $total_stall_compute ) * 100')
-    #add_counter(counters, results, 'prcnt_cycles_compute_kernel',
-                #'% Computational cycles kernel-level', '( $15301c2:k / $total_stall_compute ) * 100')
-    #add_counter(counters, results, 'prcnt_cycles_stalled_user',
-                #'% Stalled cycles user-level', '( $1d301c2:u / $total_stall_compute ) * 100')
-    #add_counter(counters, results, 'prcnt_cycles_stalled_kernel',
-      #'% Stalled cycles kernel-level', '( ( $3c:k - $15301c2:k ) / $total_stall_compute ) * 100') # XXX
+    add_counter(counters, results, 'total_stall_compute',
+                'Total cycles calculated by stall compute counters',
+                '$15301c2:u + $15301c2:k + $1d301c2:u + ( $003c:k - $15301c2:k )')
+    add_counter(counters, results, 'prcnt_cycles_compute_user',
+                '% Computational cycles user-level', '( $15301c2:u / $total_stall_compute ) * 100')
+    add_counter(counters, results, 'prcnt_cycles_compute_kernel',
+                '% Computational cycles kernel-level', '( $15301c2:k / $total_stall_compute ) * 100')
+    add_counter(counters, results, 'prcnt_cycles_stalled_user',
+                '% Stalled cycles user-level', '( $1d301c2:u / $total_stall_compute ) * 100')
+    add_counter(counters, results, 'prcnt_cycles_stalled_kernel',
+      '% Stalled cycles kernel-level', '( ( $003c:k - $15301c2:k ) / $total_stall_compute ) * 100') # XXX
 
+  # Stalls Memory
+  # add_counter(counters, results, 'prcnt_cycles_dtlb_walk',
+                # '% DTLB load miss walk cycles', '( $408 / $total_cycles ) * 100')
+  # add_counter(counters, results, 'prcnt_cycles_itlb_walk',
+                # '% ITLB walk cycles', '( $485 / $total_cycles ) * 100')
+  # add_counter(counters, results, 'prcnt_cycles_pending_l2d_miss',
+                # '% cycles with an outstanding L2 data miss request', '( $1530860 / $total_cycles ) * 100')
+  # add_counter(counters, results, 'prcnt_cycles_pending_l1i_miss',
+                # '% cycles instruction stalls on l1i but hits l2', '( ( 8 * ( $280 - $2024 ) ) / $total_cycles ) * 100')
+  # add_counter(counters, results, 'prcnt_cycles_pending_l2i_miss',
+                # '% cycles instruction stalls on l2', '( $1530260 / $total_cycles ) * 100')
 
     # Template
     #add_counter(counters, results, '', '', '')
