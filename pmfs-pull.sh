@@ -7,7 +7,7 @@ USER=testuser
 SERVER=axle.bsc.es
 SERVER_HOME=/home/$USER
 SERVER_DIR=$USER@$SERVER:$SERVER_HOME
-RESULTS_DIR=dbms-profiler/results/
+RESULTS_DIR=dbms-profiler/results/pmfs_PgMod2_Q16
 
 rsync -aP --exclude="perf.data" $SERVER_DIR/$RESULTS_DIR results-axle-pmfs
 
