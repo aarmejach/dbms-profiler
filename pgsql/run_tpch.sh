@@ -54,7 +54,10 @@ do
         do_launch_simulation $ii
     else
         # Callgraph run
-        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+        #/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+        #    --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
+        #    -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
+	/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
             --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
             -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
 
