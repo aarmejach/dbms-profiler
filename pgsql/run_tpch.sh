@@ -58,7 +58,15 @@ do
             --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
             -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
 
+        # execute function time script
         perf script | python "$BASEDIR/scripts/gprof2dot.py" -f perf | python "$BASEDIR/scripts/collect_stats.py" $i > q${ii}-breakdown.csv
+
+        do_stop_postgres
+        sudo dropcaches.sh
+        do_start_postgres
+
+        # Run queries in verbose mode
+        $PGBINDIR/psql -h /tmp -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.analyze.sql-verbose 2> q$ii.verbose.stderr > q$ii.verbose.stdout
 
         source "$BASEDIR/common/perf-counters-axle.sh"
         for counter in "${array[@]}"; do
