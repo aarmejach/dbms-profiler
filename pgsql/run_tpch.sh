@@ -54,12 +54,11 @@ do
         do_launch_simulation $ii
     else
         # Callgraph run
-        #/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
-        #    --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
-        #    -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
-	/usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
+        /usr/bin/time -f '%e\n%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k'\
             --output=q$ii.exectime perf record -a -g -m 512 -- $PGBINDIR/psql -h /tmp\
             -p $PORT -d $DB_NAME < $QUERIESDIR/q$ii.sql 2> q$ii.stderr > q$ii.stdout
+
+        perf script | python "$BASEDIR/scripts/gprof2dot.py" -f perf | python "$BASEDIR/scripts/collect_stats.py" $i > q${ii}-breakdown.csv
 
         source "$BASEDIR/common/perf-counters-axle.sh"
         for counter in "${array[@]}"; do
