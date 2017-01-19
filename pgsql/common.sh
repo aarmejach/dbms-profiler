@@ -93,7 +93,7 @@ do_check_datadir() {
 
 do_start_postgres(){
     echo "Starting Postgres server"
-    taskset -c 0-5 $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
+    taskset -c 0-7 $PGBINDIR/postgres -D "$DATADIR" -p $PORT &
     PGPID=$!
     while ! $PGBINDIR/pg_ctl status -D $DATADIR | grep "server is running" -q; do
         echo "Waiting for the Postgres server to start"
